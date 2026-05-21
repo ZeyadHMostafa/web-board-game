@@ -23,7 +23,7 @@ export default function HUD({
 
   return (
     <div 
-      className="w-full flex flex-col gap-5 p-6 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-xl shadow-xl lg:max-h-[85vh] lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800"
+      className="w-full lg:h-full flex flex-col gap-5 p-6 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-xl shadow-xl lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800"
     >
       {/* Header Info Block */}
       <div className="shrink-0">

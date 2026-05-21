@@ -1,17 +1,16 @@
-export const TILE_SIZE = 64;
-export const BOARD_SIZE = TILE_SIZE * 8; // 512px
-
 export const BoardGeometry = {
   /**
    * Converts matrix coordinates to absolute pixel positions (center of the tile)
    * @param {number} row - Grid row (0-7)
    * @param {number} col - Grid column (0-7)
+   * @param {number} boardSize - Current responsive pixel size of the board
    * @returns {{x: number, y: number}} Pixel coordinates of tile center
    */
-  matrixToPixels(row, col) {
+  matrixToPixels(row, col, boardSize) {
+    const tileSize = boardSize / 8;
     return {
-      x: col * TILE_SIZE + TILE_SIZE / 2,
-      y: (7 - row) * TILE_SIZE + TILE_SIZE / 2
+      x: col * tileSize + tileSize / 2,
+      y: (7 - row) * tileSize + tileSize / 2
     };
   },
 
@@ -19,10 +18,11 @@ export const BoardGeometry = {
    * Converts matrix coordinates to the top-left pixel position of the tile
    * Perfect for positioning absolute DOM elements like Pieces
    */
-  matrixToTileTopLeft(row, col) {
+  matrixToTileTopLeft(row, col, boardSize) {
+    const tileSize = boardSize / 8;
     return {
-      x: col * TILE_SIZE,
-      y: (7 - row) * TILE_SIZE
+      x: col * tileSize,
+      y: (7 - row) * tileSize
     };
   },
 
@@ -30,11 +30,11 @@ export const BoardGeometry = {
    * Converts canvas bounding pixel coordinates back into a grid index
    * Perfect for capturing where a user clicked or dropped a piece
    */
-  pixelsToMatrix(x, y) {
-    const col = Math.floor(x / TILE_SIZE);
-    const row = 7 - Math.floor(y / TILE_SIZE);
+  pixelsToMatrix(x, y, boardSize) {
+    const tileSize = boardSize / 8;
+    const col = Math.floor(x / tileSize);
+    const row = 7 - Math.floor(y / tileSize);
     
-    // Guard against clicks slightly outside bounds
     return {
       row: Math.max(0, Math.min(7, row)),
       col: Math.max(0, Math.min(7, col))

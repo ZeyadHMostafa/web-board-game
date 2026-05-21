@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { BOARD_SIZE } from '../../utils/boardGeometry';
 import { CanvasDrawers } from '../../utils/canvasDrawers';
 
-export default function AssistCanvas({ moves = [], showAssist = false }) {
+export default function AssistCanvas({ moves = [], showAssist = false, boardSize }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -11,23 +10,20 @@ export default function AssistCanvas({ moves = [], showAssist = false }) {
 
     const ctx = canvas.getContext('2d');
     
-    // 1. Always reset pixels before processing state shifts
-    CanvasDrawers.clear(ctx, BOARD_SIZE);
+    CanvasDrawers.clear(ctx, boardSize);
 
-    // 2. Conditional check for early exit
     if (!showAssist || moves.length === 0) return;
 
-    // 3. Draw using high-level readability abstractions
     const maxMovesToShow = Math.min(moves.length, 5);
-    CanvasDrawers.renderAssistOverlay(ctx, moves, maxMovesToShow);
+    CanvasDrawers.renderAssistOverlay(ctx, moves, maxMovesToShow, boardSize);
 
-  }, [moves, showAssist]);
+  }, [moves, showAssist, boardSize]);
 
   return (
     <canvas
       ref={canvasRef}
-      width={BOARD_SIZE}
-      height={BOARD_SIZE}
+      width={boardSize}
+      height={boardSize}
       className="absolute top-0 left-0 pointer-events-none mix-blend-screen z-10"
     />
   );

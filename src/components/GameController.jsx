@@ -1,14 +1,12 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useGameState } from '../hooks/useGameState';
 import { useHotkeys } from '../hooks/useHotkeys';
 import { BoardMatrix } from '../utils/boardMatrix';
-import { BoardGeometry } from '../utils/boardGeometry';
 import BoardContainer from './BoardContainer/BoardContainer';
 import HUD from './HUD/HUD';
 import DragOverlay from './DragOverlay';
 
 export default function GameController() {
-  // 1. Mount our unified core simulation engine hook with history properties
   const {
     board,
     currentPlayer,
@@ -20,6 +18,9 @@ export default function GameController() {
     lastMove,
     historyLength,
     currentTimelineIndex,
+    selectedCoords,
+    validMoves,
+    selectPiece,
     setShowAssist,
     setShowControl,
     executeMove,
@@ -29,12 +30,31 @@ export default function GameController() {
     stepForward
   } = useGameState();
 
-  // 2. Local mouse tracking states specifically for our floating Drag Overlay layer
-  const [draggedPiece, setDraggedPiece] = useState(null); // stores piece string type ('W'/'B')
+  const [draggedPiece, setDraggedPiece] = useState(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  
+  const [sharedBoardSize, setSharedBoardSize] = useState(512);
+  const boardWrapperRef = useRef(null);
 
-  // 3. Register global keyboard shortcuts using our useHotkeys hook
-  // Wrapped in useMemo to prevent unnecessary key re-binding cycles
+  useEffect(() => {
+    if (!boardWrapperRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const width = entry.contentRect.width;
+        if (width > 0) {
+          const snappedWidth = Math.floor(width / 8) * 8;
+          if (Math.abs(sharedBoardSize - snappedWidth) >= 8) {
+            setSharedBoardSize(snappedWidth);
+          }
+        }
+      }
+    });
+
+    resizeObserver.observe(boardWrapperRef.current);
+    return () => resizeObserver.disconnect();
+  }, [sharedBoardSize]);
+
   const hotkeyMap = useMemo(() => ({
     'F2': () => setShowAssist(prev => !prev),
     'F3': () => setShowControl(prev => !prev),
@@ -44,43 +64,51 @@ export default function GameController() {
     'ArrowLeft':  () => stepBackward(),
     'ArrowRight': () => stepForward(),
     's':  () => {
-      // Step once command: if we had an AI step ready, we would call it here
       console.log("Single simulation tick requested via 'S' hotkey.");
     }
   }), [setShowAssist, setShowControl, togglePlayerAuto, resetGame, stepBackward, stepForward]);
 
   useHotkeys(hotkeyMap);
 
-  // 4. Global cursor tracking event handlers
   const handleGlobalMouseMove = useCallback((event) => {
     if (!draggedPiece) return;
     setMousePosition({ x: event.clientX, y: event.clientY });
   }, [draggedPiece]);
 
-  /**
-   * Catches piece picking triggers passing up from the board assembly grid
-   */
   const handleMoveAttempt = useCallback((fromCoords, toCoords) => {
     executeMove(fromCoords, toCoords);
   }, [executeMove]);
 
-  // Intercepting click states directly from the matrix representation to handle visual dragging previews
-  const handleBoardMouseDownIntercept = (event) => {
-    // If the simulation is running automation, lock out player inputs
+  /**
+   * Handles individual, static cell selection clicks
+   */
+  const handleSquareClick = useCallback((coords) => {
     if (autoPlayers[currentPlayer]) return;
 
-    // We can infer what piece was picked up based on where the user pressed
-    // The BoardContainer handles actual grid indexing, we just use this to prime the cursor overlay
-    const boardRef = event.currentTarget.getBoundingClientRect();
-    const clickX = event.clientX - boardRef.left;
-    const clickY = event.clientY - boardRef.top;
-    
-    const targetCoords = BoardGeometry.pixelsToMatrix(clickX, clickY);
-    const piece = BoardMatrix.getPiece(board, targetCoords.row, targetCoords.col);
+    // Determine if the clicked cell matches an option inside our pre-calculated targets array
+    const isTargetingValidMove = validMoves.some(
+      move => move.row === coords.row && move.col === coords.col
+    );
 
+    if (selectedCoords && isTargetingValidMove) {
+      // User has a piece active and clicked an authorized destination square -> Execute!
+      executeMove(selectedCoords, coords);
+    } else {
+      // Otherwise, evaluate changing the current active selection coordinate focus
+      selectPiece(coords);
+    }
+  }, [selectedCoords, validMoves, executeMove, selectPiece, autoPlayers, currentPlayer]);
+
+  const handleDragStartIntercept = (coords, clientX, clientY) => {
+    if (autoPlayers[currentPlayer]) return;
+
+    const piece = BoardMatrix.getPiece(board, coords.row, coords.col);
     if (piece) {
       setDraggedPiece(piece);
-      setMousePosition({ x: event.clientX, y: event.clientY });
+      setMousePosition({ x: clientX, y: clientY });
+      
+      // Mirror drag targets visually by forcing selection hooks to match the dragged origin
+      selectPiece(coords);
     }
   };
 
@@ -92,22 +120,32 @@ export default function GameController() {
     <div 
       onMouseMove={handleGlobalMouseMove}
       onMouseUp={handleGlobalMouseUpIntercept}
-      className="h-auto min-h-screen w-full flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 bg-slate-950 p-4 md:p-8"
+      className="min-h-dvh w-full flex flex-col lg:flex-row items-center justify-center gap-6 p-4 md:p-8 bg-slate-950 overflow-x-hidden"
     >
-      {/* Central Visual Board Layout Assembly Stack */}
-      <div onMouseDown={handleBoardMouseDownIntercept} className="h-fit w-fit shrink-0">
+      <div 
+        ref={boardWrapperRef}
+        className="w-full max-w-[min(100vw-2rem,100dvh-4rem)] lg:max-w-[min(100vw-26rem,100dvh-4rem)] aspect-square flex items-center justify-center shrink-0"
+      >
         <BoardContainer
           boardState={board}
           showAssist={showAssist}
           showControl={showControl}
           assistMoves={assistMoves}
           lastMove={lastMove}
+          selectedCoords={selectedCoords}
+          validMoves={validMoves}
           onMoveAttempt={handleMoveAttempt}
+          onDragStart={handleDragStartIntercept}
+          onSquareClick={handleSquareClick}
         />
       </div>
 
-      {/* Control Panel Information Hub Sidebar Layer */}
-      <div className="w-full max-w-[512px] lg:w-80 shrink-0">
+      <div 
+        className="w-full max-w-[min(100vw-2rem,512px)] lg:w-80 shrink-0"
+        style={{
+          height: window.innerWidth >= 1024 ? `${sharedBoardSize}px` : 'auto'
+        }}
+      >
         <HUD
           currentPlayer={currentPlayer}
           gameEnded={gameEnded}
@@ -125,11 +163,11 @@ export default function GameController() {
         />
       </div>
 
-      {/* Independent Performance Optimized Float Render Tracker Layer */}
       <DragOverlay
         isDragging={!!draggedPiece}
         type={draggedPiece}
         mousePos={mousePosition}
+        boardSize={sharedBoardSize}
       />
     </div>
   );

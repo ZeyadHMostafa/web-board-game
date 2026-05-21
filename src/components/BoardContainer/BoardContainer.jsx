@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
-import { BOARD_SIZE, BoardGeometry } from '../../utils/boardGeometry';
+import { useState, useRef, useEffect } from 'react';
+import { BoardGeometry } from '../../utils/boardGeometry';
 import BackgroundCanvas from './BackgroundCanvas';
 import HighlightCanvas from './HighlightCanvas';
 import AssistCanvas from './AssistCanvas';
 import ControlCanvas from './ControlCanvas';
+import SelectionCanvas from './SelectionCanvas';
 import PieceLayer from './PieceLayer';
 
 export default function BoardContainer({ 
@@ -11,33 +12,48 @@ export default function BoardContainer({
   showAssist, 
   showControl,
   assistMoves, 
-  lastMove, // Added Prop
-  onMoveAttempt 
+  lastMove,
+  selectedCoords,
+  validMoves,
+  onMoveAttempt,
+  onDragStart,
+  onSquareClick
 }) {
   const boardRef = useRef(null);
-  
-  // Track the active piece coordination state locally during drag events
+  const [boardSize, setBoardSize] = useState(512);
   const [activeDragStart, setActiveDragStart] = useState(null);
 
-  /**
-   * Captures the initial grid index when the user presses down on a tile
-   */
+  useEffect(() => {
+    if (!boardRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const width = entry.contentRect.width;
+        if (width > 0 && Math.abs(boardSize - width) > 1) {
+          setBoardSize(width);
+        }
+      }
+    });
+
+    resizeObserver.observe(boardRef.current);
+    return () => resizeObserver.disconnect();
+  }, [boardSize]);
+
   const handleMouseDown = (event) => {
     if (!boardRef.current) return;
 
-    // Determine the click position relative to the board's top-left origin
     const rect = boardRef.current.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
 
-    // Convert pixel coordinates to standard grid row and col indices
-    const cellCoords = BoardGeometry.pixelsToMatrix(clickX, clickY);
+    const cellCoords = BoardGeometry.pixelsToMatrix(clickX, clickY, boardSize);
     setActiveDragStart(cellCoords);
+    
+    if (onDragStart) {
+      onDragStart(cellCoords, event.clientX, event.clientY);
+    }
   };
 
-  /**
-   * Evaluates the destination grid index when the user releases the mouse
-   */
   const handleMouseUp = (event) => {
     if (!activeDragStart || !boardRef.current) return;
 
@@ -45,14 +61,18 @@ export default function BoardContainer({
     const releaseX = event.clientX - rect.left;
     const releaseY = event.clientY - rect.top;
 
-    const targetCoords = BoardGeometry.pixelsToMatrix(releaseX, releaseY);
+    const targetCoords = BoardGeometry.pixelsToMatrix(releaseX, releaseY, boardSize);
 
-    // If the piece was dropped on a different tile, attempt the move
     if (activeDragStart.row !== targetCoords.row || activeDragStart.col !== targetCoords.col) {
+      // It was an intentional drag action across different squares
       onMoveAttempt(activeDragStart, targetCoords);
+    } else {
+      // The cursor began and finished on the exact same tile, signaling a standard discrete click
+      if (onSquareClick) {
+        onSquareClick(targetCoords);
+      }
     }
 
-    // Reset the drag tracker state
     setActiveDragStart(null);
   };
 
@@ -61,26 +81,22 @@ export default function BoardContainer({
       ref={boardRef}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
-      className="relative shadow-2xl border border-slate-700/50 rounded-md overflow-hidden bg-slate-900"
-      style={{
-        width: `${BOARD_SIZE}px`,
-        height: `${BOARD_SIZE}px`,
-      }}
+      className="relative w-full max-w-[min(100vw-2rem,100dvh-4rem)] min-w-[280px] aspect-square shadow-2xl border border-slate-700/50 rounded-md overflow-hidden bg-slate-900 mx-auto"
     >
-      {/* Layer 1: The Static Grid Backdrop */}
-      <BackgroundCanvas />
-
-      {/* Layer 1.5: Visual highlights tracking the absolute coordinates of the most recent move */}
-      <HighlightCanvas lastMove={lastMove} />
-
-      {/* Layer 2: The Vector Vector HUD Overlay Path Engine */}
-      <AssistCanvas moves={assistMoves} showAssist={showAssist} />
-
-      {/* Layer 3: The Text-Based Control Map Overlay */}
-      <ControlCanvas boardState={boardState} showControl={showControl} />
-
-      {/* Layer 4: The DOM-managed Piece Objects */}
-      <PieceLayer boardState={boardState} />
+      <BackgroundCanvas boardSize={boardSize} />
+      <HighlightCanvas lastMove={lastMove} boardSize={boardSize} />
+      <AssistCanvas moves={assistMoves} showAssist={showAssist} boardSize={boardSize} />
+      <ControlCanvas boardState={boardState} showControl={showControl} boardSize={boardSize} />
+      
+      {/* Visual rendering of piece selections and potential moves */}
+      <SelectionCanvas 
+        selectedCoords={selectedCoords} 
+        validMoves={validMoves} 
+        boardState={boardState} 
+        boardSize={boardSize} 
+      />
+      
+      <PieceLayer boardState={boardState} boardSize={boardSize} />
     </div>
   );
 }

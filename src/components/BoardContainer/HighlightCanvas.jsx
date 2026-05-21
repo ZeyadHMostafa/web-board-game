@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { BOARD_SIZE } from '../../utils/boardGeometry';
 import { CanvasDrawers } from '../../utils/canvasDrawers';
 
-export default function HighlightCanvas({ lastMove }) {
+export default function HighlightCanvas({ lastMove, boardSize }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -10,23 +9,19 @@ export default function HighlightCanvas({ lastMove }) {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    CanvasDrawers.clear(ctx, BOARD_SIZE);
+    CanvasDrawers.clear(ctx, boardSize);
 
-    // If no moves have been recorded yet (start of game), leave the canvas transparent
     if (!lastMove) return;
 
-    // Highlight the source square ('from') with a soft alpha tint
-    CanvasDrawers.drawTileHighlight(ctx, lastMove.from.row, lastMove.from.col, 'rgba(14, 110, 206, 0.18)'); // Subtle slate glow
-    
-    // Highlight the destination square ('to') with a slightly stronger matching alpha accent tint
-    CanvasDrawers.drawTileHighlight(ctx, lastMove.to.row, lastMove.to.col, 'rgba(36, 215, 251, 0.28)'); // Amber accent highlight
-  }, [lastMove]);
+    CanvasDrawers.drawTileHighlight(ctx, lastMove.from.row, lastMove.from.col, 'rgba(14, 110, 206, 0.18)', boardSize); 
+    CanvasDrawers.drawTileHighlight(ctx, lastMove.to.row, lastMove.to.col, 'rgba(36, 215, 251, 0.28)', boardSize);
+  }, [lastMove, boardSize]);
 
   return (
     <canvas
       ref={canvasRef}
-      width={BOARD_SIZE}
-      height={BOARD_SIZE}
+      width={boardSize}
+      height={boardSize}
       className="absolute top-0 left-0 pointer-events-none"
     />
   );

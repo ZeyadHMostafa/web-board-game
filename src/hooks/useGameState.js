@@ -1,10 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { EngineAdapterMock } from '../utils/engineAdapterMock';
 import { BoardMatrix } from '../utils/boardMatrix';
 
 export function useGameState() {
   // 1. Unified History Timeline Architecture
-  // Each history snapshot stores: the board matrix, the active player at that turn, and the lastMove coords
   const [history, setHistory] = useState(() => [
     {
       board: EngineAdapterMock.getInitialBoard(),
@@ -21,17 +20,28 @@ export function useGameState() {
   const currentPlayer = currentSnapshot.currentPlayer;
   const lastMove = currentSnapshot.lastMove;
 
-  // 2. Overlay Visibility toggles
+  // 2. Active Selection States
+  const [selectedCoords, setSelectedCoords] = useState(null);
+
+  // 3. Overlay Visibility toggles
   const [showAssist, setShowAssist] = useState(false);
   const [showControl, setShowControl] = useState(false);
 
-  // 3. Automation engine states
+  // 4. Automation engine states
   const [autoPlayers, setAutoPlayers] = useState([false, false]); // [Player0Auto, Player1Auto]
 
-  // 4. AI calculation tracking
+  // 5. AI calculation tracking
   const [assistMoves, setAssistMoves] = useState(() => 
-    EngineAdapterMock.getMockAIAssistMoves(0)
+    EngineAdapterMock.getMockAIAssistMoves(board, 0)
   );
+
+  /**
+   * Computes the available valid targets for the currently selected piece.
+   * Recomputes whenever the selection changes, the active board changes, or the player shifts.
+   */
+  const validMoves = useMemo(() => {
+    return EngineAdapterMock.getValidMovesForPiece(board, selectedCoords, currentPlayer);
+  }, [board, selectedCoords, currentPlayer]);
 
   /**
    * Safe action executor to translate a piece structurally across the grid matrix
@@ -60,10 +70,34 @@ export function useGameState() {
 
     setHistory([...cleanHistory, newSnapshot]);
     setCurrentIndex(cleanHistory.length);
-    setAssistMoves(EngineAdapterMock.getMockAIAssistMoves(nextPlayer));
+    setAssistMoves(EngineAdapterMock.getMockAIAssistMoves(updatedBoard, nextPlayer));
+    
+    // Clear selection state upon successful resolution of a move action
+    setSelectedCoords(null);
     
     return true;
   }, [board, currentPlayer, gameEnded, history, currentIndex]);
+
+  /**
+   * Updates or cancels the active piece coordinate selection.
+   */
+  const selectPiece = useCallback((coords) => {
+    if (gameEnded) return;
+
+    if (!coords) {
+      setSelectedCoords(null);
+      return;
+    }
+
+    const piece = BoardMatrix.getPiece(board, coords.row, coords.col);
+    const friendlyPiece = currentPlayer === 0 ? 'W' : 'B';
+
+    if (piece === friendlyPiece) {
+      setSelectedCoords(coords);
+    } else {
+      setSelectedCoords(null);
+    }
+  }, [board, currentPlayer, gameEnded]);
 
   /**
    * Timeline History Navigation Methods (Back / Forward)
@@ -74,9 +108,10 @@ export function useGameState() {
     // Safety check: force automation to turn off if traveling backward in time
     // to prevent the AI loop from auto-generating subsequent moves on past states.
     setAutoPlayers([false, false]);
+    setSelectedCoords(null);
     
     setCurrentIndex(index);
-    setAssistMoves(EngineAdapterMock.getMockAIAssistMoves(history[index].currentPlayer));
+    setAssistMoves(EngineAdapterMock.getMockAIAssistMoves(history[index].board, history[index].currentPlayer));
   }, [history]);
 
   const stepBackward = useCallback(() => {
@@ -95,32 +130,25 @@ export function useGameState() {
     if (gameEnded) return;
 
     const isCurrentAuto = autoPlayers[currentPlayer];
-    
-    // If automation is not enabled for the active player, do absolutely nothing
     if (!isCurrentAuto) return;
 
-    // Race condition token
     let isCurrentTurnActive = true;
 
-    // Simulate AI "thinking" time (800ms delay)
     const aiTimer = setTimeout(() => {
-      // If the user disabled auto, shifted turns, or reset during the window, drop the execution
       if (!isCurrentTurnActive) return;
 
-      const candidates = EngineAdapterMock.getMockAIAssistMoves(currentPlayer);
+      const candidates = EngineAdapterMock.getMockAIAssistMoves(board, currentPlayer);
       if (candidates && candidates.length > 0) {
-        // Pick the top-rated candidate move
         const topMove = candidates[0];
         executeMove(topMove.from, topMove.to);
       }
     }, 800);
 
-    // CLEANUP: If turn changes or auto-play is toggled off before the timer ends, clear it
     return () => {
       isCurrentTurnActive = false;
       clearTimeout(aiTimer);
     };
-  }, [currentPlayer, autoPlayers, gameEnded, executeMove]);
+  }, [currentPlayer, autoPlayers, gameEnded, executeMove, board]);
 
   /**
    * Resets the entire ecosystem state back to default parameters
@@ -135,7 +163,8 @@ export function useGameState() {
     ]);
     setCurrentIndex(0);
     setGameEnded(false);
-    setAssistMoves(EngineAdapterMock.getMockAIAssistMoves(0));
+    setSelectedCoords(null);
+    setAssistMoves(EngineAdapterMock.getMockAIAssistMoves(EngineAdapterMock.getInitialBoard(), 0));
   }, []);
 
   /**
@@ -157,15 +186,19 @@ export function useGameState() {
     showControl,
     autoPlayers,
     assistMoves,
-    lastMove,             // Exposed for our new HighlightCanvas layer
-    historyLength: history.length, // Exposed for tracking movement bounds
+    lastMove,
+    historyLength: history.length,
     currentTimelineIndex: currentIndex,
+    selectedCoords,
+    validMoves,
+    setSelectedCoords,
+    selectPiece,
     setShowAssist,
     setShowControl,
     executeMove,
     resetGame,
     togglePlayerAuto,
-    stepBackward,         // Exposed for HUD timeline controls
-    stepForward           // Exposed for HUD timeline controls
+    stepBackward,
+    stepForward
   };
 }
