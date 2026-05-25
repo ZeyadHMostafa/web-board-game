@@ -3,9 +3,18 @@ name = "core-engine"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
-# For Wasm compilation
-wasm-bindgen = "0.2"
+[lib]
+crate-type = ["cdylib", "rlib"]
 
-# For Python compilation (PyO3)
-pyo3 = { version = "0.21", features = ["extension-module"] }
+[features]
+default = []
+wasm = ["wasm-bindgen"]
+python = ["pyo3"]
+wasm-bindgen = ["dep:wasm-bindgen"]
+pyo3 = ["dep:pyo3"]
+
+[dependencies]
+wasm-bindgen = { version = "0.2", optional = true }
+pyo3 = { version = "0.26", features = ["extension-module"], optional = true }
+
+rayon = "1.10" # For parallel multi-threaded simulations

@@ -1,14 +1,8 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+// Public modules accessible across the library and CLI
+pub mod rules;
+pub mod heuristics;
+pub mod ai;
+pub mod simulation;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+// Conditional compilation for bindings
+pub mod bindings;
