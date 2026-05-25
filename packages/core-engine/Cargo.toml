@@ -1,0 +1,11 @@
+[package]
+name = "core-engine"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# For Wasm compilation
+wasm-bindgen = "0.2"
+
+# For Python compilation (PyO3)
+pyo3 = { version = "0.21", features = ["extension-module"] }

@@ -1,0 +1,12 @@
+{
+  "rust-analyzer.linkedProjects": [
+    "./Cargo.toml"
+  ],
+  "python.defaultInterpreterPath": "${workspaceFolder}/packages/python-ml/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/packages/python-ml"
+  ],
+  "eslint.workingDirectories": [
+    "./apps/web"
+  ]
+}
