@@ -31,6 +31,11 @@ impl Bitboard {
         Bitboard(val)
     }
 
+    /// Create a new bitboard from index
+    pub const fn from_square(index: u8) -> Self {
+        Bitboard(1<<index)
+    }
+
     /// Check if the bitboard is completely empty.
     #[inline(always)]
     pub fn is_empty(self) -> bool {
