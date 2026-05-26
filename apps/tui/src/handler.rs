@@ -1,4 +1,4 @@
-use crate::app::{App, GameMode, SelectionState};
+use crate::app::{App, GameMode, SelectionState, RightPanelMode};
 use core_engine::rules::bitboard::Bitboard;
 use core_engine::rules::moves::generate_piece_moves;
 use crossterm::event::{KeyCode, KeyEvent};
@@ -8,6 +8,20 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) {
         // Force quit
         KeyCode::Char('q') | KeyCode::Char('Q') => {
             app.running = false;
+        }
+
+        // Toggle Viewport Selection Layout
+        KeyCode::Char('m') | KeyCode::Char('M') => {
+            match app.panel_mode {
+                RightPanelMode::ControlPanel => {
+                    app.panel_mode = RightPanelMode::HeuristicMatrix;
+                    app.log("View changed to Spatial Sovereignty Tensor.");
+                }
+                RightPanelMode::HeuristicMatrix => {
+                    app.panel_mode = RightPanelMode::ControlPanel;
+                    app.log("View changed to standard Control Panel.");
+                }
+            }
         }
 
         // Toggle Engine Modes
@@ -105,7 +119,6 @@ fn handle_strict_click(idx: u8, app: &mut App) {
 
     match app.selection {
         SelectionState::None => {
-            // Check if clicking an ally piece to lift it
             if allied_pieces.has_bit(idx) {
                 let valid_moves = generate_piece_moves::<false>(idx, allied_pieces, enemy_pieces, &app.luts);
                 if valid_moves.is_empty() {
@@ -119,14 +132,12 @@ fn handle_strict_click(idx: u8, app: &mut App) {
             }
         }
         SelectionState::PieceSelected { index: src_idx, valid_moves } => {
-            // If clicking the same piece again, cancel selection
             if src_idx == idx {
                 app.selection = SelectionState::None;
                 app.log("Selection canceled.");
                 return;
             }
 
-            // If clicking another friendly piece, switch selection to that one instead
             if allied_pieces.has_bit(idx) {
                 let new_moves = generate_piece_moves::<false>(idx, allied_pieces, enemy_pieces, &app.luts);
                 app.selection = SelectionState::PieceSelected { index: idx, valid_moves: new_moves };
@@ -134,12 +145,10 @@ fn handle_strict_click(idx: u8, app: &mut App) {
                 return;
             }
 
-            // Verify if target destination is inside our precalculated move map
             if valid_moves.has_bit(idx) {
                 execute_board_movement(src_idx, idx, app);
                 app.selection = SelectionState::None;
                 
-                // Switch turn and evaluate if game ended
                 app.game_state.switch_turn();
                 if app.game_state.is_lost(&app.luts) {
                     app.log("Match concluded. Game Over encountered.");
@@ -160,7 +169,6 @@ fn handle_freeform_click(idx: u8, app: &mut App) {
             let has_p2 = app.game_state.p2_pieces.has_bit(idx);
             
             if has_p1 || has_p2 {
-                // In freeform mode, a piece can telepathically move anywhere on the board
                 app.selection = SelectionState::PieceSelected { index: idx, valid_moves: Bitboard::ALL };
                 app.log("Sandbox selection hoisted. Place anywhere on the map.");
             } else {
@@ -184,11 +192,9 @@ fn execute_board_movement(src: u8, dst: u8, app: &mut App) {
     let src_mask = Bitboard::new(1u64 << src);
     let dst_mask = Bitboard::new(1u64 << dst);
 
-    // Identify which player occupies the source node and apply structural shift
     if (app.game_state.p1_pieces & src_mask) != Bitboard::EMPTY {
         app.game_state.p1_pieces &= !src_mask;
         app.game_state.p1_pieces |= dst_mask;
-        // Erase any captures along the way
         app.game_state.p2_pieces &= !dst_mask;
     } else if (app.game_state.p2_pieces & src_mask) != Bitboard::EMPTY {
         app.game_state.p2_pieces &= !src_mask;

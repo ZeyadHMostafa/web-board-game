@@ -1,42 +1,37 @@
-use crate::app::{App, GameMode, SelectionState};
+use crate::app::{App, GameMode, SelectionState, RightPanelMode};
 use core_engine::rules::state::Player;
+use core_engine::heuristics::{TileType, SovereigntyState, RegionType, ParityType};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{Block, Borders, Paragraph, Row, Table, Cell, Wrap},
     Frame,
 };
 
 pub fn render(f: &mut Frame<'_>, app: &App) {
-    // 1. Divide the screen vertically for the main workspace vs bottom status bar
     let main_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(0), Constraint::Length(3)])
-        .split(f.area()); // Note: Frame::size was also modernized to Frame::area()
+        .split(f.area());
 
     let workspace_layout = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+        .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
         .split(main_layout[0]);
 
     let board_area = workspace_layout[0];
     let panel_area = workspace_layout[1];
     let status_area = main_layout[1];
 
-    // ========================================================================
-    // PASS 1: RENDER THE 8x8 INTERACTIVE BOARD GRID
-    // ========================================================================
     render_board(f, board_area, app);
+    
+    // Evaluate display dynamically according to active side menu panel configuration
+    match app.panel_mode {
+        RightPanelMode::ControlPanel => render_control_panel(f, panel_area, app),
+        RightPanelMode::HeuristicMatrix => render_heuristic_matrix(f, panel_area, app),
+    }
 
-    // ========================================================================
-    // PASS 2: RENDER CONTROL DECK & STATUS PANEL
-    // ========================================================================
-    render_panel(f, panel_area, app);
-
-    // ========================================================================
-    // PASS 3: RENDER THE BOTTOM TELEMETRY LANE
-    // ========================================================================
     let status_bar = Paragraph::new(app.message_log.as_str())
         .block(Block::default().borders(Borders::ALL).title(" Telemetry Status "));
     f.render_widget(status_bar, status_area);
@@ -45,16 +40,15 @@ pub fn render(f: &mut Frame<'_>, app: &App) {
 fn render_board(f: &mut Frame<'_>, area: Rect, app: &App) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(2); 8]) // 2 character high padding per rank row
+        .constraints([Constraint::Length(2); 8])
         .split(area);
 
     for r in 0..8 {
-        // Render ranks from 7 down to 0 to mirror top-down engine orientation
         let rank = 7 - r; 
         
         let cols = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Length(5); 8]) // 5 character wide block columns
+            .constraints([Constraint::Length(5); 8])
             .split(rows[r as usize]);
 
         for file in 0..8 {
@@ -95,7 +89,7 @@ fn render_board(f: &mut Frame<'_>, area: Rect, app: &App) {
     }
 }
 
-fn render_panel(f: &mut Frame<'_>, area: Rect, app: &App) {
+fn render_control_panel(f: &mut Frame<'_>, area: Rect, app: &App) {
     let mut text = Vec::new();
 
     let mode_span = match app.mode {
@@ -103,14 +97,12 @@ fn render_panel(f: &mut Frame<'_>, area: Rect, app: &App) {
         GameMode::Freeform => Span::styled("FREEFORM (SANDBOX)", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
     };
     text.push(Line::from(vec![Span::raw("Current Operating Engine: "), mode_span]));
-    text.push(Line::from(""));
 
     let turn_span = match app.game_state.active_player {
         Player::P1 => Span::styled("PLAYER 1 (Cyan)", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
         Player::P2 => Span::styled("PLAYER 2 (Magenta)", Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
     };
     text.push(Line::from(vec![Span::raw("Active Player Control: "), turn_span]));
-    text.push(Line::from(""));
 
     let index_string = format!("Index: {} | Grid Coordinate: {}{}", app.cursor_index(), (b'A' + app.cursor_x) as char, app.cursor_y + 1);
     text.push(Line::from(vec![Span::raw(index_string)]));
@@ -119,27 +111,21 @@ fn render_panel(f: &mut Frame<'_>, area: Rect, app: &App) {
     text.push(Line::from("  [Arrow Keys]  - Navigate Selector Grid"));
     text.push(Line::from("  [Space / Ent] - Select / Move Intended Piece"));
     text.push(Line::from("  [Tab]         - Toggle Operational Engine Mode"));
-    text.push(Line::from("  [ESC]         - Deselect Selection Node / Clear Move Targets"));
-    text.push(Line::from("  [Q]           - Force Terminate Execution Loop"));
+    text.push(Line::from("  [M]           - Swap Side Menu Panel Viewports"));
+    text.push(Line::from("  [ESC]         - Deselect Node  |  [Q] - Quit"));
 
     if app.mode == GameMode::Freeform {
-        text.push(Line::from(""));
-        text.push(Line::from(Span::styled("Sandbox Direct Tooling:", Style::default().fg(Color::Yellow))));
-        text.push(Line::from("  [1]           - Spawn Player 1 Piece here"));
-        text.push(Line::from("  [2]           - Spawn Player 2 Piece here"));
-        text.push(Line::from("  [3]           - Clear / Wipe Square content"));
-        text.push(Line::from("  [T]           - Switch Active Player turn state"));
+        text.push(Line::from(Span::styled("Sandbox Direct Tooling: [1] P1  [2] P2  [3] Clear  [T] Switch Turn", Style::default().fg(Color::Yellow))));
     }
 
     if app.game_state.is_lost(&app.luts) {
-        text.push(Line::from(""));
         let victor = match app.game_state.active_player {
             Player::P1 => "PLAYER 2 (MAGENTA) WINS!",
             Player::P2 => "PLAYER 1 (CYAN) WINS!",
         };
         text.push(Line::from(Span::styled(
             format!(" GAME OVER: {} ", victor),
-            Style::default().fg(Color::White).bg(Color::Red).add_modifier(Modifier::SLOW_BLINK | Modifier::BOLD)
+            Style::default().fg(Color::White).bg(Color::Red).add_modifier(Modifier::BOLD)
         )));
     }
 
@@ -148,4 +134,81 @@ fn render_panel(f: &mut Frame<'_>, area: Rect, app: &App) {
         .wrap(Wrap { trim: true });
 
     f.render_widget(panel_paragraph, area);
+}
+
+fn render_heuristic_matrix(f: &mut Frame<'_>, area: Rect, app: &App) {
+    let matrix = app.get_current_heuristics();
+
+    let target_spaces = [
+        (RegionType::Corner2x2, ParityType::Even),
+        (RegionType::Corner2x2, ParityType::Odd),
+        (RegionType::Edge4x2,   ParityType::Even),
+        (RegionType::Edge4x2,   ParityType::Odd),
+        (RegionType::Center4x4, ParityType::Even),
+        (RegionType::Center4x4, ParityType::Odd),
+    ];
+
+    let header_cells = vec![
+        Cell::from("Tile / Sovereignty").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED)),
+        Cell::from("C:Evn").style(Style::default().fg(Color::Gray)),
+        Cell::from("C:Odd").style(Style::default().fg(Color::Gray)),
+        Cell::from("E:Evn").style(Style::default().fg(Color::Gray)),
+        Cell::from("E:Odd").style(Style::default().fg(Color::Gray)),
+        Cell::from("X:Evn").style(Style::default().fg(Color::Gray)),
+        Cell::from("X:Odd").style(Style::default().fg(Color::Gray)),
+    ];
+    let header = Row::new(header_cells).height(1);
+
+    let tile_types = [
+        (TileType::Empty,        "Empt"),
+        (TileType::AlliedPiece,  "Ally"),
+        (TileType::EnemyPiece,   "Enmy"),
+    ];
+
+    let sovereignty_states = [
+        (SovereigntyState::AllyDominates,    "DomAlly", Color::Cyan),
+        (SovereigntyState::EnemyDominates,   "DomEnmy", Color::Magenta),
+        (SovereigntyState::AllyUncontested,  "UncAlly", Color::Green),
+        (SovereigntyState::EnemyUncontested, "UncEnmy", Color::Rgb(139, 0, 139)),
+        (SovereigntyState::TiedConflict,     "TiedCfl", Color::Yellow),
+        (SovereigntyState::NoConflict,       "NoConfl", Color::DarkGray),
+    ];
+
+    let mut rows = Vec::new();
+    for &(t_type, t_label) in &tile_types {
+        for &(s_type, s_label, state_color) in &sovereignty_states {
+            let row_title = format!("{}:{}", t_label, s_label);
+            let mut cells = vec![Cell::from(row_title).style(Style::default().fg(state_color).add_modifier(Modifier::BOLD))];
+
+            for &(r_type, p_type) in &target_spaces {
+                let val = matrix.values[t_type as usize][s_type as usize][r_type as usize][p_type as usize];
+                
+                let cell_style = if val > 0 {
+                    Style::default().fg(Color::White)
+                } else {
+                    Style::default().fg(Color::Rgb(60, 60, 60))
+                };
+                
+                cells.push(Cell::from(val.to_string()).style(cell_style));
+            }
+            rows.push(Row::new(cells));
+        }
+    }
+
+    let column_widths = [
+        Constraint::Length(14),
+        Constraint::Length(6),  
+        Constraint::Length(6),  
+        Constraint::Length(6),  
+        Constraint::Length(6),  
+        Constraint::Length(6),  
+        Constraint::Length(6),  
+    ];
+
+    let matrix_table = Table::new(rows, column_widths)
+        .header(header)
+        .block(Block::default().borders(Borders::ALL).title(" Spatial Sovereignty Tensor (Press [M] to Return) "))
+        .column_spacing(1);
+
+    f.render_widget(matrix_table, area);
 }
