@@ -49,26 +49,25 @@ impl EngineLUTs {
             let mut arrival_mask = 0u8;
 
             // Clockwise Path (North -> East -> South -> West)
-            if !is_e_occupied && !is_tr_occupied {
+            if !is_tr_occupied {
                 arrival_mask |= 1 << 1; // East is reachable (Bit 1)
-                
-                if !is_s_occupied && !is_br_occupied {
+                if !is_e_occupied && !is_br_occupied {
                     arrival_mask |= 1 << 2; // South is reachable (Bit 2)
                     
-                    if !is_w_occupied && !is_bl_occupied {
+                    if !is_s_occupied && !is_bl_occupied {
                         arrival_mask |= 1 << 3; // West is reachable (Bit 3)
                     }
                 }
             }
 
             // Counter-Clockwise Path (North -> West -> South -> East)
-            if !is_w_occupied && !is_tl_occupied {
+            if !is_tl_occupied {
                 arrival_mask |= 1 << 3; // West is reachable (Bit 3)
                 
-                if !is_s_occupied && !is_bl_occupied {
+                if !is_w_occupied && !is_bl_occupied {
                     arrival_mask |= 1 << 2; // South is reachable (Bit 2)
                     
-                    if !is_e_occupied && !is_br_occupied {
+                    if !is_s_occupied && !is_br_occupied {
                         arrival_mask |= 1 << 1; // East is reachable (Bit 1)
                     }
                 }
