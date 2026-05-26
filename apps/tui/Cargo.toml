@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 core-engine = { version = "0.1.0", path = "../../packages/core-engine" }
 crossterm = "0.29.0"
+futures = "0.3.32"
 ratatui = "0.30.0"
