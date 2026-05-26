@@ -55,12 +55,14 @@ pub fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboard) -> (
     // --- GLOBAL BOUNDARY OVERRIDE MASKING ---
     let pivot_rank = pivot_idx / 8;
     let pivot_file = pivot_idx % 8;
+    
+    // Static lookup arrays matching indexes 0 through 7
+    const RANK_WALLS: [u8; 8] = [0b00111000, 0, 0, 0, 0, 0, 0, 0b10000011];
+    const FILE_WALLS: [u8; 8] = [0b11100000, 0, 0, 0, 0, 0, 0, 0b00001110];
 
-    if pivot_rank == 7 { packed_neighborhood |= 0b10000011; } // Top Edge (Rank 7): Wall off [TL, TR, N]
-    if pivot_rank == 0 { packed_neighborhood |= 0b00111000; } // Bottom Edge (Rank 0): Wall off [BL, BR, S]
-    if pivot_file == 0 { packed_neighborhood |= 0b11100000; } // Left Edge (File 0): Wall off [TL, W, BL]
-    if pivot_file == 7 { packed_neighborhood |= 0b00001110; } // Right Edge (File 7): Wall off [TR, E, BR]
-
+    // Completely branchless bitwise application:
+    packed_neighborhood |= RANK_WALLS[pivot_rank as usize] | FILE_WALLS[pivot_file as usize];
+    
     // --- THE BRANCHLESS OFFSET HASH ---
     let d_u8 = (piece_idx as i8).wrapping_sub(pivot_idx as i8) as u8;
     let initial_offset_type = (d_u8 & 1) | ((d_u8 >> 3) & 2);
@@ -92,15 +94,16 @@ pub(crate) fn shift_and_clip_mask(local_mask: u64, pivot_idx: u8, luts: &EngineL
     let pivot_file = (pivot_idx & 7) as i32;
 
     // Create a bitmask that evaluates to a solid block of 1s if pivot_file == 0, else 0s.
+    
     // (pivot_file == 0) turns into 1 or 0, negating it flips it to -1 (0xFFFFFFFF) or 0.
     let is_a_file_mask = -((pivot_file == 0) as i64) as u64;
     // Do the exact same for the H-file (pivot_file == 7)
     let is_h_file_mask = -((pivot_file == 7) as i64) as u64;
 
     // Apply the correction masks using bitwise selection:
-    // If on the A-file, clear out the non-A-file bits. Otherwise, leave abs_mask completely untouched.
-    abs_mask &= !(is_a_file_mask & luts.not_a_file.0);
-    abs_mask &= !(is_h_file_mask & luts.not_h_file.0);
+    // If on the A-file, clear out the h-file bits. Otherwise, leave abs_mask completely untouched.
+    abs_mask &= !(is_a_file_mask & !luts.not_h_file.0);
+    abs_mask &= !(is_h_file_mask & !luts.not_a_file.0);
 
     Bitboard::new(abs_mask)
 }
@@ -129,7 +132,7 @@ pub(crate) fn compute_ray_moves<const IS_CONTROL_EVAL: bool, F>(
     allied_blockers: Bitboard,
     piece_idx: u8,
     neighbor_shift: i32,
-    _find_closest_bit: F, // No longer needed as we use parallel sequence evaluation
+    _find_closest_bit: F,
 ) -> Bitboard 
 where
     F: Fn(Bitboard) -> u32,
