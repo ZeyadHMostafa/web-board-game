@@ -20,10 +20,12 @@ pub struct EngineLUTs {
     pub not_h_file: Bitboard,
 }
 
+use std::sync::OnceLock;
+
 impl EngineLUTs {
     /// Instantiates the static precalculated lookup architecture.
     /// Can be executed within a `const` context or once at startup.
-    pub const fn new() -> Self {
+    const fn new() -> Self {
         Self {
             neighborhood_rotation_lut: Self::generate_rotation_evaluator(),
             cardinal_offset_lut: Self::generate_relative_move_masks(),
@@ -31,6 +33,11 @@ impl EngineLUTs {
             not_a_file: Bitboard(0xFEFEFEFEFEFEFEFE),
             not_h_file: Bitboard(0x7F7F7F7F7F7F7F7F),
         }
+    }
+
+    pub fn get_engine_luts() -> &'static EngineLUTs {
+        static LUTS: OnceLock<EngineLUTs> = OnceLock::new();
+        LUTS.get_or_init(|| EngineLUTs::new())
     }
 
     const fn generate_rotation_evaluator() -> [u8; 128] {
