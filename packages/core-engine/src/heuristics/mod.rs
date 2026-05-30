@@ -20,12 +20,12 @@ pub enum TileType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(usize)]
 pub enum SovereigntyState {
-    AllyDominates      = 0, // Allied depth > Enemy depth > 0 (Ally wins tactical trades)
-    EnemyDominates     = 1, // Enemy depth > Allied depth > 0 (Enemy wins tactical trades)
-    AllyUncontested    = 2, // Allied depth > 0, Enemy depth == 0 (Pure Allied territory)
-    EnemyUncontested   = 3, // Enemy depth > 0, Allied depth == 0 (Pure Enemy territory)
-    TiedConflict       = 4, // Allied depth == Enemy depth > 0 (Dead even standoff)
-    NoConflict         = 5, // Allied depth == 0, Enemy depth == 0 (No-man's land)
+    AllyUncontested    = 0, // Allied depth > 0, Enemy depth == 0 (Pure Allied territory)
+    AllyDominates      = 1, // Allied depth > Enemy depth > 0 (Ally wins tactical trades)
+    NoConflict         = 2, // Allied depth == 0, Enemy depth == 0 (No-man's land)
+    TiedConflict       = 3, // Allied depth == Enemy depth > 0 (Dead even standoff)
+    EnemyDominates     = 4, // Enemy depth > Allied depth > 0 (Enemy wins tactical trades)
+    EnemyUncontested   = 5, // Enemy depth > 0, Allied depth == 0 (Pure Enemy territory)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

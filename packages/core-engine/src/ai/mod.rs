@@ -4,7 +4,6 @@ pub mod search;
 pub use evaluator::{PositionEvaluator, EvaluationScore};
 
 mod evaluator {
-    use std::cmp::Ordering;
     use crate::rules::state::GameState;
 
     /// Strong typing for evaluation bounds, handling standard scaling and explicit matings.

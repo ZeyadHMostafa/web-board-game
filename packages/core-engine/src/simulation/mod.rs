@@ -2,12 +2,21 @@ pub mod environment;
 pub mod parallel;
 
 // Re-export the core interfaces
-pub use agent::{Agent, GameClock, SearchContext};
+pub use agent::{Agent, GameClock};
+
+pub struct TrainingSample {
+    pub features: Vec<f32>,
+    pub target_score: f32,
+}
+
+pub struct SimulationBatch {
+    pub samples: Vec<TrainingSample>,
+}
 
 mod agent {
     use std::time::Duration;
     use crate::rules::state::GameState;
-    use crate::rules::moves::Move;
+    use crate::rules::move_structs::Move;
 
     /// Keeps track of the remaining match time allocations.
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -15,13 +24,6 @@ mod agent {
         pub active_player_time: Duration,
         pub opponent_time: Duration,
         pub increment: Duration,
-    }
-
-    /// Bundles context needed to safely restrict a search operation.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-    pub struct SearchContext {
-        pub clock: Option<GameClock>,
-        pub max_depth: Option<usize>,
     }
 
     /// The unified asynchronous engine blackbox interface.
@@ -32,7 +34,7 @@ mod agent {
         fn select_move(
             &self, 
             state: &GameState, 
-            context: &SearchContext
+            clock: Option<GameClock>
         ) -> impl std::future::Future<Output = Result<Move, String>> + Send;
     }
 }

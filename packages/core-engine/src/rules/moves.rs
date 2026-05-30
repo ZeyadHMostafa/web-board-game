@@ -5,51 +5,6 @@ use crate::rules::move_utils::{
     shift_and_clip_mask,
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Move {
-    payload: u16,
-}
-
-impl Move {
-    const FROM_MASK: u16 = 0x003F; // Lowest 6 bits
-    const TO_MASK: u16   = 0x0FC0; // Middle 6 bits
-    const FLAG_MASK: u16 = 0xF000; // Top 4 bits
-
-    #[inline]
-    pub const fn new(from: u8, to: u8, flags: u8) -> Self {
-        Self {
-            payload: (from as u16 & Self::FROM_MASK)
-                | ((to as u16) << 6 & Self::TO_MASK)
-                | ((flags as u16) << 12 & Self::FLAG_MASK),
-        }
-    }
-
-    #[inline]
-    pub const fn from_square(&self) -> u8 {
-        (self.payload & Self::FROM_MASK) as u8
-    }
-
-    #[inline]
-    pub const fn to_square(&self) -> u8 {
-        ((self.payload & Self::TO_MASK) >> 6) as u8
-    }
-
-    #[inline]
-    pub const fn flags(&self) -> u8 {
-        ((self.payload & Self::FLAG_MASK) >> 12) as u8
-    }
-
-    #[inline]
-    pub fn extract_moves_from_mask(from_idx: u8, mut destination_mask: Bitboard, flags: u8) -> Vec<Self> {
-        let mut moves = Vec::with_capacity(destination_mask.count_ones() as usize);
-        while !destination_mask.is_empty() {
-            let to_idx = destination_mask.pop_lsb();
-            moves.push(Self::new(from_idx, to_idx, flags));
-        }
-        moves
-    }
-}
-
 // ============================================================================
 // MAIN GENERATION PIPELINES
 // ============================================================================
@@ -143,7 +98,7 @@ pub fn generate_moves_for_pivot<const IS_CONTROL_EVAL: bool>(
     }
 
     // Step 2: Extract our dense 7-bit neighborhood rotation key
-    let (key, initial_offset_type) = generate_7bit_key(piece_idx, pivot_idx, total_occupancy);
+    let (key, initial_offset_type) = generate_7bit_key(piece_idx, pivot_idx, total_occupancy, luts);
 
     // Step 3: Fast O(1) rotation status lookup
     let relative_arrival_mask = luts.neighborhood_rotation_lut[key as usize];

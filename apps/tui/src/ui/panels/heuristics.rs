@@ -37,12 +37,12 @@ pub fn render(f: &mut Frame<'_>, area: Rect, app: &App) {
     ];
 
     let sovereignty_states = [
-        (SovereigntyState::AllyDominates,    "DomAlly", Color::Cyan),
-        (SovereigntyState::EnemyDominates,   "DomEnmy", Color::Magenta),
         (SovereigntyState::AllyUncontested,  "UncAlly", Color::Green),
-        (SovereigntyState::EnemyUncontested, "UncEnmy", Color::Rgb(139, 0, 139)),
-        (SovereigntyState::TiedConflict,     "TiedCfl", Color::Yellow),
-        (SovereigntyState::NoConflict,       "NoConfl", Color::DarkGray),
+        (SovereigntyState::AllyDominates,    "DomAlly", Color::Cyan),
+        (SovereigntyState::NoConflict,       "NoConfl", Color::White),
+        (SovereigntyState::TiedConflict,     "TiedCfl", Color::LightYellow),
+        (SovereigntyState::EnemyDominates,   "DomEnmy", Color::LightRed),
+        (SovereigntyState::EnemyUncontested, "UncEnmy", Color::Red),
     ];
 
     let mut rows = Vec::new();
@@ -79,6 +79,8 @@ pub fn render(f: &mut Frame<'_>, area: Rect, app: &App) {
 
             rows.push(Row::new(cells));
         }
+
+        rows.push(Row::new([Cell::new("")]));
     }
 
     // Set precise layout sizes to support the new totals dimension within bounds

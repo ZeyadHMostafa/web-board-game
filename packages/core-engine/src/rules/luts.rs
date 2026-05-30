@@ -16,8 +16,14 @@ pub struct EngineLUTs {
     pub neighborhood_rotation_lut: [u8; 128],
     pub cardinal_offset_lut: [Bitboard; 16],
     pub(crate) diagonal_ray_lut: [DiagonalRays; 64],
+    pub moore_neighborhood_lut: [Bitboard; 64],
+    
     pub not_a_file: Bitboard,
     pub not_h_file: Bitboard,
+    
+
+    pub topology_idx_lut: [u8; 64],
+    pub topology_wall_masks: [u8; 9],
 }
 
 use std::sync::OnceLock;
@@ -26,12 +32,29 @@ impl EngineLUTs {
     /// Instantiates the static precalculated lookup architecture.
     /// Can be executed within a `const` context or once at startup.
     const fn new() -> Self {
+        let idx_lut = Self::generate_topology_maps();
         Self {
             neighborhood_rotation_lut: Self::generate_rotation_evaluator(),
             cardinal_offset_lut: Self::generate_relative_move_masks(),
             diagonal_ray_lut: Self::generate_diagonal_rays(),
             not_a_file: Bitboard(0xFEFEFEFEFEFEFEFE),
             not_h_file: Bitboard(0x7F7F7F7F7F7F7F7F),
+            moore_neighborhood_lut: Self::generate_moore_neighborhood_lut(),
+            topology_idx_lut: idx_lut,
+
+                // TL L  BL B  BR R  TR T
+                // 7  6  5  4  3  2  1  0
+            topology_wall_masks: [
+                0b00000000, // 0: Center (No walls)
+                0b00111000, // 1: Bottom Edge (S, SE, SW are walls)
+                0b11000001, // 2: Top Edge (N, NE, NW are walls)
+                0b11100000, // 3: Left Edge (W, NW, SW are walls)
+                0b00001110, // 4: Right Edge (E, NE, SE are walls)
+                0b11111000, // 5: Bottom-Left Corner
+                0b00111110, // 6: Bottom-Right Corner
+                0b11100011, // 7: Top-Left Corner
+                0b10001111, // 8: Top-Right Corner
+            ],
         }
     }
 
@@ -154,5 +177,85 @@ impl EngineLUTs {
         }
         
         Bitboard::new(ray_val)
+    }
+
+    const fn generate_moore_neighborhood_lut() -> [Bitboard; 64] {
+        let mut lut = [Bitboard::EMPTY; 64];
+        let mut i = 0;
+        
+        // File masks to prevent left/right edge wrapping during shifting
+        let not_a_file = 0xFEFEFEFEFEFEFEFE;
+        let not_h_file = 0x7F7F7F7F7F7F7F7F;
+
+        while i < 64 {
+            let bit = 1u64 << i;
+            let mut neighbors = 0u64;
+
+            // North and South
+            neighbors |= bit << 8;
+            neighbors |= bit >> 8;
+
+            // West and its diagonals (Clear H-File wrap)
+            let west_bits = bit >> 1;
+            if (west_bits & not_h_file) != 0 {
+                neighbors |= west_bits;
+                neighbors |= west_bits << 8;
+                neighbors |= west_bits >> 8;
+            }
+
+            // East and its diagonals (Clear A-File wrap)
+            let east_bits = bit << 1;
+            if (east_bits & not_a_file) != 0 {
+                neighbors |= east_bits;
+                neighbors |= east_bits << 8;
+                neighbors |= east_bits >> 8;
+            }
+
+            lut[i] = Bitboard::new(neighbors);
+            i += 1;
+        }
+        
+        lut
+    }
+    
+    const fn generate_topology_maps() -> [u8; 64] {
+        let mut idx_table = [0u8; 64];
+        let mut sq = 0;
+
+        while sq < 64 {
+            let rank = sq / 8;
+            let file = sq % 8;
+
+            let is_bottom = rank == 0;
+            let is_top = rank == 7;
+            let is_left = file == 0;
+            let is_right = file == 7;
+            let mut topo_idx = 0u8;
+
+            if !is_bottom && !is_top && !is_left && !is_right {
+                topo_idx = 0; // Center
+            } else if is_bottom && !is_left && !is_right {
+                topo_idx = 1; // Bottom Edge
+            } else if is_top && !is_left && !is_right {
+                topo_idx = 2; // Top Edge
+            } else if is_left && !is_bottom && !is_top {
+                topo_idx = 3; // Left Edge
+            } else if is_right && !is_bottom && !is_top {
+                topo_idx = 4; // Right Edge
+            } else if is_bottom && is_left {
+                topo_idx = 5; // BL Corner
+            } else if is_bottom && is_right {
+                topo_idx = 6; // BR Corner
+            } else if is_top && is_left {
+                topo_idx = 7; // TL Corner
+            } else if is_top && is_right {
+                topo_idx = 8; // TR Corner
+            }
+
+            idx_table[sq] = topo_idx;
+            sq += 1;
+        }
+
+        idx_table
     }
 }

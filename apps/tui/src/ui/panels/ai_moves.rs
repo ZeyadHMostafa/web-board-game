@@ -5,8 +5,8 @@ use ratatui::{
     Frame,
 };
 use crate::app::App;
-use core_engine::rules::moves::Move;
-use core_engine::ai::models::EvaluationScore;
+use core_engine::rules::{luts::EngineLUTs, move_structs::Move};
+use core_engine::ai::EvaluationScore;
 
 struct RatedMove {
     action: Move,
@@ -15,7 +15,7 @@ struct RatedMove {
 
 pub fn render(f: &mut Frame<'_>, area: Rect, app: &App) {
     // 1. Gather all immediate legal actions using the global reference LUTs
-    let legal_moves = app.game_state.generate_legal_moves(&app.luts);
+    let legal_moves = app.game_state.generate_legal_moves(EngineLUTs::get_engine_luts());
     let mut rated_moves = Vec::with_capacity(legal_moves.len());
 
     // 2. Perform a 1-ply lookahead simulation pass for telemetry reporting

@@ -4,3 +4,6 @@ members = [
     "apps/tui"
 ]
 resolver = "2"
+
+[profile.release]
+debug = true

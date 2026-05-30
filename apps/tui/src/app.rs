@@ -1,11 +1,15 @@
 use std::sync::Arc;
-use std::time::Duration;
+use core_engine::ai::EvaluationScore;
+use core_engine::ai::models::static_dot::DEFAULT_EVALUATOR_WEIGHTS;
+use core_engine::ai::search::negamax_agent::NegamaxAgent;
+use core_engine::rules::bitboard::Bitboard;
 use core_engine::rules::luts::EngineLUTs;
 use core_engine::rules::state::{GameState, Player};
 use core_engine::heuristics::evaluators::EvaluationEngine;
 use core_engine::ai::models::{PositionEvaluator, StaticDotProductEvaluator};
 use core_engine::ai::search::BasePickerSearch;
-use core_engine::simulation::SearchContext;
+use core_engine::simulation::Agent;
+use core_engine::ai::models::static_dot::load_weights_from_npy;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameMode {
@@ -16,7 +20,7 @@ pub enum GameMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectionState {
     None,
-    PieceSelected { index: u8, valid_moves: core_engine::rules::bitboard::Bitboard },
+    PieceSelected { index: u8, valid_moves: Bitboard },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,9 +50,8 @@ impl ActivePanelTab {
 
 pub struct App {
     // Core Engine Contexts (Owned once at application root)
-    pub luts: EngineLUTs,
     pub evaluator: Arc<dyn PositionEvaluator>,
-    pub search_engine: BasePickerSearch,
+    pub search_engine: Box<NegamaxAgent>,
     pub heuristic_engine: EvaluationEngine,
 
     // Game Core State
@@ -66,22 +69,33 @@ pub struct App {
     pub running: bool,
 }
 
-
-const LUTS:EngineLUTs = EngineLUTs::new();
-
 impl App {
-    pub fn new() -> Self {
-        // Instantiate our new data-oriented static evaluation neural matrices
-        let evaluator = Arc::new(StaticDotProductEvaluator::new(&LUTS));
-        // Setup our 1-ply base picker search engine
-        let search_engine = BasePickerSearch::new(&LUTS, evaluator.clone());
-        
+    pub fn new(weights_path: Option<&str>) -> Self {
+        // Resolve target weight vector matrix
+        let final_weights = match weights_path {
+            Some(path) => match load_weights_from_npy(path) {
+                Ok(loaded_matrix) => {
+                    // Successfully loaded trained parameters
+                    loaded_matrix
+                }
+                Err(_err) => {
+                    // Fall back to compilation constants if reading fails
+                    DEFAULT_EVALUATOR_WEIGHTS
+                }
+            }
+            None => DEFAULT_EVALUATOR_WEIGHTS,
+        };
+
+        // Instantiate structural components using the resolved weights
+        let luts = EngineLUTs::get_engine_luts();
+        let evaluator = Arc::new(StaticDotProductEvaluator::new(luts, final_weights));
+        let search_engine = Box::new(NegamaxAgent::new(luts, evaluator.clone(), 6));
+
         let mut app = Self {
-            luts: LUTS,
             evaluator,
             search_engine,
             heuristic_engine: EvaluationEngine::new(),
-            game_state: GameState::new(0, 0, Player::P1), // Initialized empty, reset below
+            game_state: GameState::new(0, 0, Player::P1),
             mode: GameMode::Strict,
             p1_agent: ControllerAgent::Human,
             p2_agent: ControllerAgent::Human,
@@ -89,7 +103,11 @@ impl App {
             cursor_y: 3,
             selection: SelectionState::None,
             active_tab: ActivePanelTab::ControlMap,
-            message_log: String::from("System Boot Complete. Core modules linked."),
+            message_log: if weights_path.is_some() && final_weights != DEFAULT_EVALUATOR_WEIGHTS {
+                String::from("System Boot Complete. Custom trained neural weight layers deployed.")
+            } else {
+                String::from("System Boot Complete. Core modules linked using baseline static matrix.")
+            },
             running: true,
         };
         app.reset_to_starting_position();
@@ -112,15 +130,15 @@ impl App {
             Player::P1 => (self.game_state.p1_pieces, self.game_state.p2_pieces),
             Player::P2 => (self.game_state.p2_pieces, self.game_state.p1_pieces),
         };
-        self.heuristic_engine.evaluate_position(allied, enemy, &self.luts)
+        self.heuristic_engine.evaluate_position(allied, enemy, EngineLUTs::get_engine_luts())
     }
 
     /// Evaluates the positional score from the perspective of the active moving player.
     pub fn get_position_score(&self) -> i32 {
         match self.evaluator.evaluate(&self.game_state) {
-            core_engine::ai::models::EvaluationScore::Value(v) => v,
-            core_engine::ai::models::EvaluationScore::Mating(_) => i32::MAX,
-            core_engine::ai::models::EvaluationScore::Mated(_) => i32::MIN,
+            EvaluationScore::Value(v) => v,
+            EvaluationScore::Mating(_) => i32::MAX,
+            EvaluationScore::Mated(_) => i32::MIN,
         }
     }
 

@@ -1,6 +1,7 @@
 use crate::rules::bitboard::Bitboard;
 use crate::rules::luts::EngineLUTs;
-use crate::rules::moves::{Move, generate_piece_moves};
+use crate::rules::moves::generate_piece_moves;
+use crate::rules::move_structs::{Move, MoveList};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Player {
@@ -65,12 +66,7 @@ impl GameState {
             let piece_idx = pieces_to_scan.pop_lsb();
 
             // Compute standard legal moves (IS_CONTROL_EVAL = false)
-            let legal_moves = generate_piece_moves::<false>(
-                piece_idx,
-                allied_pieces,
-                enemy_pieces,
-                luts,
-            );
+            let legal_moves = self.generate_legal_moves(luts);
 
             // If we find even a single valid destination square across any piece,
             // the active player is still safely in the game.
@@ -85,8 +81,8 @@ impl GameState {
 
     /// Step 1: Implements GameState.generate_legal_moves()
     /// Sweeps the active player's pieces and converts absolute mobility targets into concrete Move variants.
-    pub fn generate_legal_moves(&self, luts: &EngineLUTs) -> Vec<Move> {
-        let mut legal_moves = Vec::with_capacity(32); // Pre-allocated based on average branching factor
+    pub fn generate_legal_moves(&self, luts: &EngineLUTs) -> MoveList {
+        let mut move_list = MoveList::new();
 
         let (allied_pieces, enemy_pieces) = match self.active_player {
             Player::P1 => (self.p1_pieces, self.p2_pieces),
@@ -97,21 +93,18 @@ impl GameState {
         while !moving_pieces.is_empty() {
             let piece_idx = moving_pieces.pop_lsb();
 
-            // IS_CONTROL_EVAL is explicitly set to false here to filter friendly fire 
-            // and capture your game's accurate structural move targets.
             let move_mask = generate_piece_moves::<false>(
                 piece_idx,
                 allied_pieces,
                 enemy_pieces,
-                &luts,
+                luts,
             );
 
-            // Turn the bits into formal Move layouts and append
-            let extracted = Move::extract_moves_from_mask(piece_idx, move_mask, 0);
-            legal_moves.extend(extracted);
+            // Pass reference to the stack-allocated list for zero-allocation collection
+            Move::extract_moves_from_mask(piece_idx, move_mask, enemy_pieces, 0, &mut move_list);
         }
 
-        legal_moves
+        move_list
     }
 
     /// Step 2: Implements GameState.make_move(current_move)
@@ -142,6 +135,38 @@ impl GameState {
 
                 // Hand over play control
                 self.active_player = Player::P1;
+            }
+        }
+    }
+    /// Performs an in-place mutation to reverse a move execution,
+    /// restoring any captured pieces and resetting play control.
+    pub fn unmake_move(&mut self, historical_move: Move) {
+        // Step 1: Hand back play control to the person who made the move
+        self.active_player = self.active_player.opponent();
+
+        let from_mask = Bitboard::from_square(historical_move.from_square());
+        let to_mask = Bitboard::from_square(historical_move.to_square());
+
+        match self.active_player {
+            Player::P1 => {
+                // Return Allied piece back to its starting square
+                self.p1_pieces |= from_mask;
+                self.p1_pieces &= !to_mask;
+
+                // If it was a capture, resurrect the enemy piece at the destination
+                if historical_move.is_capture() {
+                    self.p2_pieces |= to_mask;
+                }
+            }
+            Player::P2 => {
+                // Return Allied piece back to its starting square
+                self.p2_pieces |= from_mask;
+                self.p2_pieces &= !to_mask;
+
+                // If it was a capture, resurrect the enemy piece at the destination
+                if historical_move.is_capture() {
+                    self.p1_pieces |= to_mask;
+                }
             }
         }
     }

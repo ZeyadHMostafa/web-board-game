@@ -1,9 +1,10 @@
 use std::sync::Arc;
 use crate::rules::luts;
 use crate::rules::state::GameState;
-use crate::rules::moves::Move;
-use crate::simulation::{Agent, SearchContext};
-use crate::ai::models::{PositionEvaluator, EvaluationScore};
+use crate::rules::move_structs::Move;
+use crate::simulation::{Agent, GameClock};
+use crate::ai::models::PositionEvaluator;
+use crate::ai::evaluator::EvaluationScore;
 
 /// A rudimentary 1-ply picker that tests structural pipelines 
 /// by choosing the immediately highest scoring local position.
@@ -22,7 +23,7 @@ impl Agent for BasePickerSearch {
     async fn select_move(
         &self, 
         state: &GameState, 
-        _context: &SearchContext
+        time: Option<GameClock>
     ) -> Result<Move, String> {
         // Generate valid transitions for the active player.
         // Assumes GameState provides an iterator or vector of legal active moves.

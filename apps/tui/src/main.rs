@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // 2. Instantiate our Elm-style Application State Container
-    let mut app = App::new();
+    let mut app = App::new(Some("./packages/python-ml/data/exp1/trained_weights.npy"));
 
     // 3. Central Application Tick Thread Execution Loop
     while app.running {

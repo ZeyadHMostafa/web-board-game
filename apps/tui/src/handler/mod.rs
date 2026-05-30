@@ -1,6 +1,8 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use crate::app::{App, GameMode, ActivePanelTab, ControllerAgent, SelectionState};
-use core_engine::simulation::SearchContext;
+use core_engine::simulation::Agent;
+use core_engine::simulation::GameClock;
+use core_engine::rules::luts::EngineLUTs;
 
 pub mod strict;
 pub mod freeform;
@@ -80,24 +82,26 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) {
     }
 
     // Trigger AI Execution immediately if it's an AI's turn and the game isn't over
-    if app.mode == GameMode::Strict && app.is_active_player_ai() && !app.game_state.is_lost(&app.luts) {
+    if app.mode == GameMode::Strict && app.is_active_player_ai() && !app.game_state.is_lost(EngineLUTs::get_engine_luts()) {
         trigger_ai_move(app);
     }
 }
 
-/// Invokes our 1-ply search picker using the global shared LUT layout references.
 fn trigger_ai_move(app: &mut App) {
-    use core_engine::simulation::Agent;
-    
     app.log("AI is processing position parameters...");
-    let context = SearchContext { clock: None, max_depth: Some(1) };
     
-    // Execute the baseline picker search synchronously for our TUI testing loop
-    match futures::executor::block_on(app.search_engine.select_move(&app.game_state, &context)) {
+    // Create a static 10-second buffer with no increment for testing
+    let mock_clock = GameClock {
+        active_player_time: std::time::Duration::from_secs(5),
+        opponent_time: std::time::Duration::from_secs(5),
+        increment: std::time::Duration::from_secs(0),
+    };
+
+    match futures::executor::block_on(app.search_engine.select_move(&app.game_state, Some(mock_clock))) {
         Ok(best_move) => {
             app.game_state.make_move(best_move);
             app.log(&format!(
-                "AI successfully executed transition: {} -> {}", 
+                "AI (Negamax) executed transition: {} -> {}", 
                 best_move.from_square(), 
                 best_move.to_square()
             ));

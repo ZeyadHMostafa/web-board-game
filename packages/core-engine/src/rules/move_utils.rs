@@ -23,50 +23,43 @@ pub fn get_orthogonal_mask(piece_idx: u8, luts: &EngineLUTs) -> Bitboard {
     Bitboard::new(adjacent)
 }
 
-/// Fast un-clipped neighborhood sampler.
-/// 
-/// # Safety / Hazards
-/// This function relies on modular wrapping math (`rem_euclid`) to prevent panic errors near borders.
-/// As a consequence, index reads close to edges wrap onto the opposite side of the board and return 
-/// structurally invalid data. **Must** be followed up immediately by an outer boundary wall override.
-#[inline(always)]
-fn sample_neighborhood_square(pivot_idx: u8, r_off: i8, f_off: i8, occupancy: Bitboard) -> u8 {
-    let target_idx = (pivot_idx as i8)
-        .wrapping_add(r_off.wrapping_mul(8))
-        .wrapping_add(f_off);
-        
-    let safe_idx = target_idx.rem_euclid(64) as u32;
-    ((occupancy.0 >> safe_idx) & 1) as u8
-}
+pub fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboard, luts: &EngineLUTs) -> (u8, u8) {
+    let shift_amt = ((9 + 64) - (pivot_idx as i8)) as u8 & 63 ;
+    let topo_idx = luts.topology_idx_lut[pivot_idx as usize];
 
-pub fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboard) -> (u8, u8) {
-    // Corrected coordinate steps: North adds 8 rows (+1, 0), South subtracts 8 rows (-1, 0)
-    let n  = sample_neighborhood_square(pivot_idx,  1,  0, occupancy);
-    let tr = sample_neighborhood_square(pivot_idx,  1,  1, occupancy);
-    let e  = sample_neighborhood_square(pivot_idx,  0,  1, occupancy);
-    let br = sample_neighborhood_square(pivot_idx, -1,  1, occupancy);
-    let s  = sample_neighborhood_square(pivot_idx, -1,  0, occupancy);
-    let bl = sample_neighborhood_square(pivot_idx, -1, -1, occupancy);
-    let w  = sample_neighborhood_square(pivot_idx,  0, -1, occupancy);
-    let tl = sample_neighborhood_square(pivot_idx,  1, -1, occupancy);
+    // shift everything to position 9 (contains bleed)
+    let shifted_occupancy = occupancy.0.rotate_left(shift_amt as u32);
 
-    let mut packed_neighborhood = (tl << 7) | (w << 6) | (bl << 5) | (s << 4) | (br << 3) | (e << 2) | (tr << 1) | n;
+    // since we know their exact locations (around 9) we can just
+    // extract the positions properly
+    // 16 17 18 => TL T TR
+    // 8  9  10 => L  -  R
+    // 0  1  2  => BL B BR
+    // 
+    // convert to:
+    // TL L  BL B  BR R  TR T
+    // 7  6  5  4  3  2  1  0
+    let t  = ((shifted_occupancy >> (17-0)) & (1<<0)) as u8; // Move index 17 to bit 0
+    let tr = ((shifted_occupancy >> (18-1)) & (1<<1)) as u8; // Move index 18 to bit 1
+    let r  = ((shifted_occupancy >> (10-2)) & (1<<2)) as u8; // Move index 10 to bit 2
+    let br = ((shifted_occupancy << (3-2))  & (1<<3)) as u8; // Move index 2  to bit 3
+    let b  = ((shifted_occupancy << (4-1))  & (1<<4)) as u8; // Move index 1  to bit 4
+    let bl = ((shifted_occupancy << (5-0))  & (1<<5)) as u8; // Move index 0  to bit 5
+    let l  = ((shifted_occupancy >> (8-6))  & (1<<6)) as u8; // Move index 8  to bit 6
+    let tl = ((shifted_occupancy >> (16-7)) & (1<<7)) as u8; // Move index 16 to bit 7
 
-    // --- GLOBAL BOUNDARY OVERRIDE MASKING ---
-    let pivot_rank = pivot_idx / 8;
-    let pivot_file = pivot_idx % 8;
-    
-    // Static lookup arrays matching indexes 0 through 7
-    const RANK_WALLS: [u8; 8] = [0b00111000, 0, 0, 0, 0, 0, 0, 0b10000011];
-    const FILE_WALLS: [u8; 8] = [0b11100000, 0, 0, 0, 0, 0, 0, 0b00001110];
+    let mut packed_neighborhood = tl | l | bl | b | br | r | tr | t;
 
-    // Completely branchless bitwise application:
-    packed_neighborhood |= RANK_WALLS[pivot_rank as usize] | FILE_WALLS[pivot_file as usize];
-    
+    let wall_mask = luts.topology_wall_masks[topo_idx as usize];
+    packed_neighborhood |= wall_mask;
+
+
     // --- THE BRANCHLESS OFFSET HASH ---
+    // magic formula to figure out entry orthogonal position
     let d_u8 = (piece_idx as i8).wrapping_sub(pivot_idx as i8) as u8;
     let initial_offset_type = (d_u8 & 1) | ((d_u8 >> 3) & 2);
 
+    // shift by double the amount to do 90 degrees
     let shift_amount = initial_offset_type << 1;
     let aligned_neighborhood = packed_neighborhood.rotate_right(shift_amount as u32);
 

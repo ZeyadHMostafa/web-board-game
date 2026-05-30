@@ -1,5 +1,6 @@
 use crate::rules::bitboard::Bitboard;
 use crate::rules::luts::EngineLUTs;
+use crate::rules::move_structs::Move;
 use crate::rules::moves::generate_piece_moves;
 use crate::heuristics::{
     RegionType, ParityType,
@@ -24,7 +25,45 @@ impl EvaluationEngine {
         }
     }
 
-    /// Step 1: Orchestration Pipeline
+    #[inline(always)]
+    pub fn evaluate_move(m:&Move, allied_pieces: Bitboard, enemy_pieces: Bitboard) -> i32 {
+        let from_sq = m.from_square() as usize;
+        let to_sq = m.to_square() as usize;
+        
+        let to_mask = crate::rules::bitboard::Bitboard::from_square(m.to_square());
+        let is_capture = !(to_mask & enemy_pieces).is_empty();
+
+        let mut move_score: i32 = 0;
+
+        let moore_neighborhood_lut = &EngineLUTs::get_engine_luts().moore_neighborhood_lut;
+        if is_capture {
+            // Base bonus for any capture event
+            move_score += 5000;
+            
+
+            // Target Victim Density: Pull the neighborhood mask for the captured square
+            let victim_neighborhood = moore_neighborhood_lut[to_sq];
+            
+            // Count how many pieces surrounding the victim belong to the enemy
+            // High counts indicate capturing a highly "central/dense" piece inside their block
+            let enemy_density = (victim_neighborhood & enemy_pieces).count_ones() as i32;
+            move_score += enemy_density * 100;
+            
+            // Attacker Density: Evaluate the moving piece's initial neighborhood support
+            let attacker_neighborhood = moore_neighborhood_lut[from_sq];
+            let allied_density = (attacker_neighborhood & allied_pieces).count_ones() as i32;
+            move_score -= allied_density * 50;
+        } else {
+            // Quiets: Prioritize stepping into dense, well-supported allied formations
+            let destination_neighborhood = moore_neighborhood_lut[to_sq];
+            let destination_allied_density = (destination_neighborhood & allied_pieces).count_ones() as i32;
+            move_score += destination_allied_density * 20;
+        }
+
+        // Invert the score so the highest values sort to the front of the list
+        -move_score
+    }
+    
     /// Coordinates generation passes across both perspectives using engine lookups, 
     /// then passes the batches directly into the vector-optimized reducer.
     pub fn evaluate_position(
@@ -39,7 +78,6 @@ impl EvaluationEngine {
         self.reduce_assets_to_matrix(&ally_batch, &enemy_batch, allied_pieces, enemy_pieces)
     }
 
-    /// Step 2: Generation Phase
     /// Iterates through the active side's pieces to construct intermediate maps.
     /// Executes with IS_CONTROL_EVAL permanently true to track the entire control profile.
     fn generate_intermediate_assets(
@@ -75,7 +113,6 @@ impl EvaluationEngine {
         IntermediateBatch { union_map, density }
     }
 
-    /// Step 3: Reduction Phase
     /// Employs parallel digital magnitude comparators over both batch layers 
     /// to divide the 64-bit board space into 6 mutually exclusive sovereignty masks.
     fn reduce_assets_to_matrix(
@@ -111,23 +148,23 @@ impl EvaluationEngine {
         let enemy_greater_mask = (b2 & !a2) | (eq2 & (b1 & !a1)) | (eq2 & eq1 & (b0 & !a0));
 
         // 3. Synthesize clean Sovereignty States based purely on control capability
-        let ally_dominates = ally_greater_mask & any_enemy_control;  // Overlapping, but Ally has more power
-        let enemy_dominates = enemy_greater_mask & any_ally_control; // Overlapping, but Enemy has more power
-
         let ally_uncontested = ally_greater_mask & !any_enemy_control; // Only Ally can reach it
+        let ally_dominates = ally_greater_mask & any_enemy_control;  // Overlapping, but Ally has more power
+        
         let enemy_uncontested = enemy_greater_mask & !any_ally_control; // Only Enemy can reach it
+        let enemy_dominates = enemy_greater_mask & any_ally_control; // Overlapping, but Enemy has more power
 
         let tied_conflict = absolute_equal_depth & any_ally_control;  // Overlapping and perfectly even depth
         let no_conflict = !(any_ally_control | any_enemy_control);    // Completely out of reach for both
 
         // Map synthesized masks directly to the SovereigntyState enum indexes
         let sovereignty_masks = [
-            ally_dominates,      // SovereigntyState::AllyDominates
-            enemy_dominates,     // SovereigntyState::EnemyDominates
             ally_uncontested,    // SovereigntyState::AllyUncontested
-            enemy_uncontested,   // SovereigntyState::EnemyUncontested
-            tied_conflict,       // SovereigntyState::TiedConflict
+            ally_dominates,      // SovereigntyState::AllyDominates
             no_conflict,         // SovereigntyState::NoConflict
+            tied_conflict,       // SovereigntyState::TiedConflict
+            enemy_dominates,     // SovereigntyState::EnemyDominates
+            enemy_uncontested,   // SovereigntyState::EnemyUncontested
         ];
 
         // 4. Synthesize the 3 Tile Type Placement Bitmasks
@@ -167,3 +204,4 @@ impl EvaluationEngine {
         matrix
     }
 }
+
