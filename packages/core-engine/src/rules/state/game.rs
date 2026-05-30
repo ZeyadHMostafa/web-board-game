@@ -1,7 +1,6 @@
-use crate::rules::bitboard::Bitboard;
+use crate::rules::state::Bitboard;
 use crate::rules::luts::EngineLUTs;
-use crate::rules::moves::generate_piece_moves;
-use crate::rules::move_structs::{Move, MoveList};
+use crate::rules::moves::{Move, MoveList, generate_piece_moves};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Player {

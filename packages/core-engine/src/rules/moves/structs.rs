@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::rules::bitboard::Bitboard;
+use crate::rules::state::Bitboard;
 
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

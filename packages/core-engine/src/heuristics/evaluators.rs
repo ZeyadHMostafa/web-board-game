@@ -1,6 +1,6 @@
-use crate::rules::bitboard::Bitboard;
+use crate::rules::state::Bitboard;
 use crate::rules::luts::EngineLUTs;
-use crate::rules::move_structs::Move;
+use crate::rules::moves::Move;
 use crate::rules::moves::generate_piece_moves;
 use crate::heuristics::{
     RegionType, ParityType,
@@ -30,7 +30,7 @@ impl EvaluationEngine {
         let from_sq = m.from_square() as usize;
         let to_sq = m.to_square() as usize;
         
-        let to_mask = crate::rules::bitboard::Bitboard::from_square(m.to_square());
+        let to_mask = crate::rules::state::Bitboard::from_square(m.to_square());
         let is_capture = !(to_mask & enemy_pieces).is_empty();
 
         let mut move_score: i32 = 0;

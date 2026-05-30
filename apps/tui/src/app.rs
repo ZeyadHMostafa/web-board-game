@@ -2,7 +2,7 @@ use std::sync::Arc;
 use core_engine::ai::EvaluationScore;
 use core_engine::ai::models::static_dot::DEFAULT_EVALUATOR_WEIGHTS;
 use core_engine::ai::search::negamax_agent::NegamaxAgent;
-use core_engine::rules::bitboard::Bitboard;
+use core_engine::rules::state::Bitboard;
 use core_engine::rules::luts::EngineLUTs;
 use core_engine::rules::state::{GameState, Player};
 use core_engine::heuristics::evaluators::EvaluationEngine;

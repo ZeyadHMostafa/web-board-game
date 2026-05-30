@@ -16,7 +16,7 @@ pub struct SimulationBatch {
 mod agent {
     use std::time::Duration;
     use crate::rules::state::GameState;
-    use crate::rules::move_structs::Move;
+    use crate::rules::moves::Move;
 
     /// Keeps track of the remaining match time allocations.
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]

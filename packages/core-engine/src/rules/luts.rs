@@ -1,4 +1,4 @@
-use crate::rules::bitboard::Bitboard;
+use crate::rules::state::Bitboard;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct DiagonalRays {

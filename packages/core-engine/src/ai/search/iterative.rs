@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use crate::ai::search::negamax::{SearchContext, invert_score, negamax};
 use crate::ai::EvaluationScore;
 use crate::ai::search::transposition_table::TranspositionTable;
-use crate::rules::move_structs::Move;
+use crate::rules::moves::Move;
 use crate::rules::state::GameState;
 
 pub struct IterativeDeepeningController<'a> {

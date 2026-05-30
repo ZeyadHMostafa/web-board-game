@@ -1,4 +1,4 @@
-use crate::rules::bitboard::Bitboard;
+use crate::rules::state::Bitboard;
 use crate::rules::luts::EngineLUTs;
 
 // ============================================================================
@@ -10,7 +10,7 @@ use crate::rules::luts::EngineLUTs;
 /// Left deliberately unintersected by any specific board state so outer callers 
 /// can selectively mask it against allies, pivots, or custom evaluation shapes.
 #[inline(always)]
-pub fn get_orthogonal_mask(piece_idx: u8, luts: &EngineLUTs) -> Bitboard {
+pub(super) fn get_orthogonal_mask(piece_idx: u8, luts: &EngineLUTs) -> Bitboard {
     let piece_mask = 1u64 << piece_idx;
     
     // Shift single piece bit globally in all 4 cardinal directions.
@@ -23,7 +23,7 @@ pub fn get_orthogonal_mask(piece_idx: u8, luts: &EngineLUTs) -> Bitboard {
     Bitboard::new(adjacent)
 }
 
-pub fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboard, luts: &EngineLUTs) -> (u8, u8) {
+pub(super) fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboard, luts: &EngineLUTs) -> (u8, u8) {
     let shift_amt = ((9 + 64) - (pivot_idx as i8)) as u8 & 63 ;
     let topo_idx = luts.topology_idx_lut[pivot_idx as usize];
 
@@ -69,7 +69,7 @@ pub fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboard, luts
 }
 
 #[inline(always)]
-pub(crate) fn shift_and_clip_mask(local_mask: u64, pivot_idx: u8, luts: &EngineLUTs) -> Bitboard {
+pub(super) fn shift_and_clip_mask(local_mask: u64, pivot_idx: u8, luts: &EngineLUTs) -> Bitboard {
     const LOCAL_ORIGIN_IDX: i32 = 28;
     
     // --- 1. BRANCHLESS SPATIAL TRANSLATION ---
@@ -103,7 +103,7 @@ pub(crate) fn shift_and_clip_mask(local_mask: u64, pivot_idx: u8, luts: &EngineL
 
 /// Shifts a local relative 4-bit arrival mask back into absolute directional coordinates.
 #[inline(always)]
-pub fn align_relative_mask(relative_mask: u8, initial_offset_type: u8) -> u8 {
+pub(super) fn align_relative_mask(relative_mask: u8, initial_offset_type: u8) -> u8 {
     // Isolate the lower 4 cardinal bits
     let mask = relative_mask & 0x0F;
     
@@ -120,7 +120,7 @@ pub fn align_relative_mask(relative_mask: u8, initial_offset_type: u8) -> u8 {
 /// Evaluates an arbitrary chain of contiguous allied obstacles along a precomputed 
 /// vector mask using parallel bit-smearing logic.
 #[inline(always)]
-pub(crate) fn compute_ray_moves<const IS_CONTROL_EVAL: bool, F>(
+pub(super) fn compute_ray_moves<const IS_CONTROL_EVAL: bool, F>(
     ray: Bitboard,
     allied_blockers: Bitboard,
     piece_idx: u8,

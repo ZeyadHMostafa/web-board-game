@@ -1,5 +1,5 @@
 use rand::RngExt;
-use crate::rules::move_structs::Move;
+use crate::rules::moves::Move;
 use crate::ai::search::iterative::SearchResult;
 use crate::ai::EvaluationScore;
 

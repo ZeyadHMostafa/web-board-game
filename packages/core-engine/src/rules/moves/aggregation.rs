@@ -1,13 +1,10 @@
-use crate::rules::bitboard::Bitboard;
+use crate::rules::state::Bitboard;
 use crate::rules::luts::EngineLUTs;
-use crate::rules::move_utils::{
+use super::utils::{
     align_relative_mask, compute_ray_moves, generate_7bit_key, get_orthogonal_mask,
     shift_and_clip_mask,
 };
 
-// ============================================================================
-// MAIN GENERATION PIPELINES
-// ============================================================================
 
 /// Evaluates and combines both orthogonal and diagonal movement sets for a single 
 /// specified piece index on the board.

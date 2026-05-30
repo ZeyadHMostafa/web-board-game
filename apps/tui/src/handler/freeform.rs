@@ -1,5 +1,5 @@
 use crate::app::{App, SelectionState};
-use core_engine::rules::bitboard::Bitboard;
+use core_engine::rules::state::Bitboard;
 use crossterm::event::KeyCode;
 
 pub fn handle_freeform_click(idx: u8, app: &mut App) {

@@ -28,8 +28,8 @@ pub fn run_self_play_batch(
             let mut game_samples = Vec::new();
 
             // Tracking the last 4 unique configurations per player via sliding index stacks
-            let mut p1_history = [crate::rules::bitboard::Bitboard::EMPTY; 4];
-            let mut p2_history = [crate::rules::bitboard::Bitboard::EMPTY; 4];
+            let mut p1_history = [crate::rules::state::Bitboard::EMPTY; 4];
+            let mut p2_history = [crate::rules::state::Bitboard::EMPTY; 4];
             let mut move_counter = 0;
             let nodes_explored = AtomicUsize::new(0);
 

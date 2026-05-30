@@ -1,4 +1,4 @@
-use crate::rules::bitboard::Bitboard;
+use crate::rules::state::Bitboard;
 
 pub mod evaluators;
 

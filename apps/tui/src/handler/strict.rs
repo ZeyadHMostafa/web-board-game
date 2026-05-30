@@ -1,7 +1,7 @@
 use crate::app::{App, SelectionState};
-use core_engine::rules::bitboard::Bitboard;
+use core_engine::rules::state::Bitboard;
 use core_engine::rules::moves::generate_piece_moves;
-use core_engine::rules::move_structs::Move;
+use core_engine::rules::moves::Move;
 use core_engine::rules::state::Player;
 use core_engine::rules::luts::EngineLUTs;
 
