@@ -3,7 +3,7 @@ use core_engine::rules::state::Bitboard;
 use core_engine::rules::moves::generate_piece_moves;
 use core_engine::rules::moves::Move;
 use core_engine::rules::state::Player;
-use core_engine::rules::luts::EngineLUTs;
+use core_engine::luts::EngineLUTs;
 
 pub fn handle_strict_click(idx: u8, app: &mut App) {
     let (allied_pieces, enemy_pieces) = match app.game_state.active_player {

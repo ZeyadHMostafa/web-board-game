@@ -1,6 +1,4 @@
-use crate::rules::state::Bitboard;
-
-pub mod evaluators;
+use crate::{luts::{ParityMasks, RegionalMasks}, rules::state::Bitboard};
 
 // ============================================================================
 // CORE ENUMS WITH EXPLICIT DISCRIMINANTS
@@ -36,11 +34,32 @@ pub enum RegionType {
     Center4x4 = 2,
 }
 
+impl RegionalMasks {
+    #[inline(always)]
+    pub const fn get(&self, region: RegionType) -> Bitboard {
+        match region {
+            RegionType::Corner2x2 => self.corners,
+            RegionType::Edge4x2   => self.edges,
+            RegionType::Center4x4 => self.center,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(usize)]
 pub enum ParityType {
     Even = 0,
     Odd  = 1,
+}
+
+impl ParityMasks {
+    #[inline(always)]
+    pub const fn get(&self, parity: ParityType) -> Bitboard {
+        match parity {
+            ParityType::Even => self.even,
+            ParityType::Odd  => self.odd,
+        }
+    }
 }
 
 // ============================================================================
@@ -67,62 +86,6 @@ pub struct StructuralMoveMap {
 pub struct IntermediateBatch {
     pub union_map: StructuralMoveMap,
     pub density:   VerticalDensityMap,
-}
-
-// ============================================================================
-// SPATIAL MASKING CONTEXT
-// ============================================================================
-
-pub struct RegionalMasks {
-    pub corners: Bitboard,
-    pub edges:   Bitboard,
-    pub center:  Bitboard,
-}
-
-impl RegionalMasks {
-    pub const fn new() -> Self {
-        // C E E C
-        // E O O E
-        // E O O E
-        // C E E C
-        // O = Center, C = Corner, E = Edge
-        Self {
-            corners: Bitboard(0xC3C300000000C3C3),
-            edges:   Bitboard(0x3C3CC3C3C3C33C3C), 
-            center:  Bitboard(0x00003C3C3C3C0000), 
-        }
-    }
-
-    #[inline(always)]
-    pub const fn get(&self, region: RegionType) -> Bitboard {
-        match region {
-            RegionType::Corner2x2 => self.corners,
-            RegionType::Edge4x2   => self.edges,
-            RegionType::Center4x4 => self.center,
-        }
-    }
-}
-
-pub struct ParityMasks {
-    pub even: Bitboard,
-    pub odd:  Bitboard,
-}
-
-impl ParityMasks {
-    pub const fn new() -> Self {
-        Self {
-            even: Bitboard(0x55AA55AA55AA55AA),
-            odd:  Bitboard(0xAA55AA55AA55AA55),
-        }
-    }
-
-    #[inline(always)]
-    pub const fn get(&self, parity: ParityType) -> Bitboard {
-        match parity {
-            ParityType::Even => self.even,
-            ParityType::Odd  => self.odd,
-        }
-    }
 }
 
 // ============================================================================

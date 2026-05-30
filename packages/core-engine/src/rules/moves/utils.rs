@@ -1,5 +1,5 @@
 use crate::rules::state::Bitboard;
-use crate::rules::luts::EngineLUTs;
+use crate::luts::EngineLUTs;
 
 // ============================================================================
 // HELPERS

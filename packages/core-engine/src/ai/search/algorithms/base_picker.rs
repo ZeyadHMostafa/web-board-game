@@ -1,9 +1,9 @@
 use std::sync::Arc;
-use crate::rules::luts;
+use crate::luts;
 use crate::rules::state::GameState;
 use crate::rules::moves::Move;
 use crate::simulation::{Agent, GameClock};
-use crate::ai::models::PositionEvaluator;
+use crate::ai::PositionEvaluator;
 use crate::ai::evaluator::EvaluationScore;
 
 /// A rudimentary 1-ply picker that tests structural pipelines 

@@ -3,7 +3,7 @@
 use pyo3::prelude::*;
 use numpy::{PyArray1, PyArray2, PyArrayMethods, PyReadonlyArray1, IntoPyArray};
 use std::sync::Arc;
-use crate::rules::luts;
+use crate::luts;
 use crate::ai::models::static_dot::TrainableDotProductEvaluator;
 use crate::simulation::parallel::run_self_play_batch;
 use crate::rules::state::{GameState, Player};

@@ -2,14 +2,15 @@ use rayon::prelude::*;
 use std::io::Write;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
+use crate::ai::heuristics::evaluators;
 use crate::rules::state::{GameState, Player};
-use crate::rules::luts::EngineLUTs;
-use crate::ai::search::negamax::SearchContext;
-use crate::ai::search::iterative::IterativeDeepeningController;
+use crate::luts::EngineLUTs;
+use crate::ai::search::SearchContext;
+use crate::ai::search::controllers::IterativeDeepeningController;
 use crate::ai::models::static_dot::TrainableDotProductEvaluator;
 use crate::ai::EvaluationScore;
 use crate::simulation::{SimulationBatch, TrainingSample};
-use crate::ai::search::utils::{ActionSelector, SelectorMode};
+use crate::ai::search::selector::{ActionSelector, SelectorMode};
 
 pub fn run_self_play_batch(
     luts: &'static EngineLUTs,
@@ -49,8 +50,7 @@ pub fn run_self_play_batch(
             };
 
             let extract_features = |state: &GameState| {
-                let engine = crate::heuristics::evaluators::EvaluationEngine::new();
-                let matrix = engine.evaluate_position(
+                let matrix = evaluators::evaluate_position(
                     if state.active_player == Player::P1 { state.p1_pieces } else { state.p2_pieces },
                     if state.active_player == Player::P2 { state.p1_pieces } else { state.p2_pieces },
                     luts

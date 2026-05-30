@@ -1,8 +1,9 @@
 use std::{f32::consts::E, sync::{Arc, atomic::{AtomicBool, AtomicUsize}}};
 
 use core_engine::{
-    ai::{EvaluationScore::{self, Mating, Value}, models::static_dot, search::{negamax::{SearchContext, negamax}, negamax_agent::NegamaxAgent}},
-    rules::{luts::EngineLUTs, state::{GameState, Player}},
+    ai::{EvaluationScore::{self, Mating, Value}, models::static_dot, search::{SearchContext, algorithms::negamax::NegamaxAgent}},
+    rules::state::{GameState, Player},
+    luts::EngineLUTs,
     simulation::Agent
 };
 

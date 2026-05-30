@@ -1,18 +1,9 @@
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use crate::ai::search::transposition_table::{HashEntryBounds, TranspositionTable};
-use crate::heuristics::evaluators;
+use std::sync::atomic::Ordering;
+use crate::ai::search::SearchContext;
+use crate::ai::search::utils::{HashEntryBounds, TranspositionTable, invert_score};
+use crate::ai::heuristics::evaluators;
 use crate::rules::state::GameState;
-use crate::rules::luts::EngineLUTs;
-use crate::ai::models::PositionEvaluator;
 use crate::ai::evaluator::EvaluationScore;
-
-
-pub struct SearchContext<'a> {
-    pub evaluator: &'a dyn PositionEvaluator,
-    pub luts: &'static EngineLUTs,
-    pub cancelled: &'a AtomicBool,
-    pub nodes_explored: &'a AtomicUsize,
-}
 
 /// Core recursive Negamax algorithm with Alpha-Beta pruning.
 pub fn negamax(
@@ -64,7 +55,7 @@ pub fn negamax(
         
         // Sort directly on the stack allocation using the lightweight heuristic hierarchy
         legal_moves.sort_unstable_by_key(
-            |&m|evaluators::EvaluationEngine::evaluate_move(&m, allied_pieces, enemy_pieces)
+            |&m|evaluators::evaluate_move(&m, allied_pieces, enemy_pieces)
         );
     }
 
@@ -105,17 +96,4 @@ pub fn negamax(
     tt.store(state, max_score, depth, bounds);
 
     max_score
-}
-
-/// Helper function to handle perspective inversion for customized EvaluationScore
-pub fn invert_score(score: EvaluationScore) -> EvaluationScore {
-    match score {
-        // Use checked_neg to safely catch and handle i32::MIN overflow
-        EvaluationScore::Value(v) => {
-            let inverted = v.checked_neg().unwrap_or(i32::MAX);
-            EvaluationScore::Value(inverted)
-        }
-        EvaluationScore::Mating(d) => EvaluationScore::Mated(d + 1),
-        EvaluationScore::Mated(d) => EvaluationScore::Mating(d + 1),
-    }
 }

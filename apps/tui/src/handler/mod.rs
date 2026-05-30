@@ -2,7 +2,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use crate::app::{App, GameMode, ActivePanelTab, ControllerAgent, SelectionState};
 use core_engine::simulation::Agent;
 use core_engine::simulation::GameClock;
-use core_engine::rules::luts::EngineLUTs;
+use core_engine::luts::EngineLUTs;
 
 pub mod strict;
 pub mod freeform;

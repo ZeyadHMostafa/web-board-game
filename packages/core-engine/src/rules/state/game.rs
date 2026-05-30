@@ -1,5 +1,5 @@
 use crate::rules::state::Bitboard;
-use crate::rules::luts::EngineLUTs;
+use crate::luts::EngineLUTs;
 use crate::rules::moves::{Move, MoveList, generate_piece_moves};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

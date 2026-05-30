@@ -1,6 +1,6 @@
 use rand::RngExt;
 use crate::rules::moves::Move;
-use crate::ai::search::iterative::SearchResult;
+use crate::ai::search::SearchResult;
 use crate::ai::EvaluationScore;
 
 #[derive(Debug, Clone, Copy, PartialEq)]

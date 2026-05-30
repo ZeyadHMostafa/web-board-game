@@ -1,30 +1,16 @@
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
-use crate::ai::search::negamax::{SearchContext, invert_score, negamax};
-use crate::ai::EvaluationScore;
-use crate::ai::search::transposition_table::TranspositionTable;
-use crate::rules::moves::Move;
+use crate::ai::search::{SearchContext, SearchResult};
+use crate::ai::search::algorithms::negamax::negamax;
+use crate::ai::{EvaluationScore, ScoredMove};
+use crate::ai::search::utils::{TranspositionTable, invert_score};
 use crate::rules::state::GameState;
 
 pub struct IterativeDeepeningController<'a> {
     ctx: SearchContext<'a>,
     min_depth: usize,
     max_depth: usize,
-}
-
-#[derive(Debug, Clone)]
-pub struct ScoredMove {
-    pub current_move: Move,
-    pub score: EvaluationScore,
-}
-
-#[derive(Debug, Clone)]
-pub struct SearchResult {
-    pub candidates: Vec<ScoredMove>,
-    pub depth_reached: usize,
-    pub nodes_explored: usize,
-    pub branching_factor: f64,
 }
 
 impl<'a> IterativeDeepeningController<'a> {

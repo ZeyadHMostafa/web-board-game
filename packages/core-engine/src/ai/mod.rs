@@ -1,7 +1,15 @@
 pub mod models;
 pub mod search;
+pub mod heuristics;
 
 pub use evaluator::{PositionEvaluator, EvaluationScore};
+use crate::rules::moves::Move;
+
+#[derive(Debug, Clone)]
+pub struct ScoredMove {
+    pub current_move: Move,
+    pub score: EvaluationScore,
+}
 
 mod evaluator {
     use crate::rules::state::GameState;

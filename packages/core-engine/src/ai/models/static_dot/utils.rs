@@ -1,10 +1,25 @@
 use crate::{
-    ai::EvaluationScore,
-    heuristics::evaluators::EvaluationEngine,
-    rules::{
-        luts::EngineLUTs, state::{GameState, Player}
-    }
+    ai::{EvaluationScore, heuristics::evaluators},
+    rules::state::{GameState, Player},
+    luts::EngineLUTs
 };
+
+/// Global pre-computed weights matrix for quick initialization across files.
+pub const DEFAULT_EVALUATOR_WEIGHTS: [[[[i32; 2]; 3]; 6]; 3] = generate_weights(
+    // Base action prospects based on TileType and SovereigntyState
+    // Dimensions: [SovereigntyState: 6][TileType: 3]
+    [
+        //emty ally enmy
+        [  03,  50, -15  ],// ally-unc
+        [  01,  45,  25  ],// ally-dom
+        [  00,  40,  40  ],// conf-non
+        [  00,  35, -35  ],// conf-tie
+        [ -01,  30, -45  ],// enmy-dom
+        [ -03,  20, -50  ],// enmy-unc
+    ],
+    // Multipliers for each RegionType: Corner, Edge, Center
+    [10, 11, 12],
+);
 
 /// Generates the multi-dimensional weights matrix using procedural combination rules.
 /// Parity values (Even and Odd columns) remain identical as parity yields no effect here.    
@@ -43,7 +58,6 @@ pub(crate) const fn generate_weights(
 #[inline(always)]
 pub(crate) fn compute_dot_product<F>(
     state: &GameState,
-    engine: &EvaluationEngine,
     luts: &EngineLUTs,
     weight_lookup: F,
 ) -> EvaluationScore
@@ -51,7 +65,7 @@ where
     F: Fn(usize, usize, usize, usize) -> i32,
 {
     // Run the identical high-performance pipeline from your existing engine
-    let matrix = engine.evaluate_position(
+    let matrix = evaluators::evaluate_position(
         if state.active_player == Player::P1 { state.p1_pieces } else { state.p2_pieces }, 
         if state.active_player == Player::P2 { state.p1_pieces } else { state.p2_pieces }, 
         luts

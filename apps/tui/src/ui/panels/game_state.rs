@@ -7,7 +7,7 @@ use ratatui::{
 };
 use crate::app::{App, ControllerAgent, GameMode};
 use core_engine::rules::state::Player;
-use core_engine::rules::luts::EngineLUTs;
+use core_engine::luts::EngineLUTs;
 
 pub fn render(f: &mut Frame<'_>, area: Rect, app: &App) {
     let mut text = Vec::new();

@@ -1,15 +1,22 @@
 use std::sync::Arc;
-use core_engine::ai::EvaluationScore;
-use core_engine::ai::models::static_dot::DEFAULT_EVALUATOR_WEIGHTS;
-use core_engine::ai::search::negamax_agent::NegamaxAgent;
-use core_engine::rules::state::Bitboard;
-use core_engine::rules::luts::EngineLUTs;
-use core_engine::rules::state::{GameState, Player};
-use core_engine::heuristics::evaluators::EvaluationEngine;
-use core_engine::ai::models::{PositionEvaluator, StaticDotProductEvaluator};
-use core_engine::ai::search::BasePickerSearch;
+use core_engine::ai::{
+    EvaluationScore, PositionEvaluator,
+    heuristics::{HeuristicMatrix, evaluators},
+    models::static_dot::{
+        DEFAULT_EVALUATOR_WEIGHTS,
+        StaticDotProductEvaluator,
+        load_weights_from_npy
+    },
+    search::algorithms::{
+        base_picker::BasePickerSearch, negamax::NegamaxAgent
+    }
+};
+
 use core_engine::simulation::Agent;
-use core_engine::ai::models::static_dot::load_weights_from_npy;
+use core_engine::luts::EngineLUTs;
+use core_engine::rules::state::{
+    GameState, Player, Bitboard
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameMode {
@@ -52,7 +59,6 @@ pub struct App {
     // Core Engine Contexts (Owned once at application root)
     pub evaluator: Arc<dyn PositionEvaluator>,
     pub search_engine: Box<NegamaxAgent>,
-    pub heuristic_engine: EvaluationEngine,
 
     // Game Core State
     pub game_state: GameState,
@@ -94,7 +100,6 @@ impl App {
         let mut app = Self {
             evaluator,
             search_engine,
-            heuristic_engine: EvaluationEngine::new(),
             game_state: GameState::new(0, 0, Player::P1),
             mode: GameMode::Strict,
             p1_agent: ControllerAgent::Human,
@@ -125,12 +130,12 @@ impl App {
     }
 
     /// Pulls the calculated structural matrix directly out of our baseline evaluator engine.
-    pub fn get_current_heuristics(&self) -> core_engine::heuristics::HeuristicMatrix {
+    pub fn get_current_heuristics(&self) -> HeuristicMatrix {
         let (allied, enemy) = match self.game_state.active_player {
             Player::P1 => (self.game_state.p1_pieces, self.game_state.p2_pieces),
             Player::P2 => (self.game_state.p2_pieces, self.game_state.p1_pieces),
         };
-        self.heuristic_engine.evaluate_position(allied, enemy, EngineLUTs::get_engine_luts())
+        evaluators::evaluate_position(allied, enemy, EngineLUTs::get_engine_luts())
     }
 
     /// Evaluates the positional score from the perspective of the active moving player.

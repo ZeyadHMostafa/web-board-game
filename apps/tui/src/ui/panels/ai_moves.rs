@@ -5,7 +5,8 @@ use ratatui::{
     Frame,
 };
 use crate::app::App;
-use core_engine::rules::{luts::EngineLUTs, moves::Move};
+use core_engine::luts::EngineLUTs;
+use core_engine::rules::moves::Move;
 use core_engine::ai::EvaluationScore;
 
 struct RatedMove {

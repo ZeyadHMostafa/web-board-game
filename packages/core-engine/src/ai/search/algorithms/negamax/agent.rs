@@ -1,14 +1,14 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::Duration;
-use crate::ai::search::iterative::IterativeDeepeningController;
-use crate::ai::search::negamax::SearchContext;
-use crate::ai::search::utils::{ActionSelector, SelectorMode};
-use crate::rules::luts;
+use crate::ai::search::controllers::IterativeDeepeningController;
+use crate::ai::search::SearchContext;
+use crate::ai::search::selector::{ActionSelector, SelectorMode};
+use crate::luts;
 use crate::rules::state::GameState;
 use crate::rules::moves::Move;
 use crate::simulation::{Agent, GameClock};
-use crate::ai::models::PositionEvaluator;
+use crate::ai::PositionEvaluator;
 
 pub struct NegamaxAgent {
     pub evaluator: Arc<dyn PositionEvaluator>,

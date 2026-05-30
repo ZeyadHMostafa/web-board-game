@@ -5,7 +5,7 @@ use ratatui::{
     Frame,
 };
 use crate::app::App;
-use core_engine::heuristics::{TileType, SovereigntyState, RegionType, ParityType};
+use core_engine::ai::heuristics::{TileType, SovereigntyState, RegionType, ParityType};
 
 pub fn render(f: &mut Frame<'_>, area: Rect, app: &App) {
     let matrix = app.get_current_heuristics();
