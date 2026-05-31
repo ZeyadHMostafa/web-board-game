@@ -3,6 +3,11 @@ use crate::app::{App, GameMode, ActivePanelTab, ControllerAgent, SelectionState}
 use core_engine::simulation::Agent;
 use core_engine::simulation::GameClock;
 use core_engine::luts::EngineLUTs;
+use std::sync::{Arc, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+
+use core_engine::ai::search::{SearchContext, SearchProgress};
 
 pub mod strict;
 pub mod freeform;
@@ -88,24 +93,56 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) {
 }
 
 fn trigger_ai_move(app: &mut App) {
-    app.log("AI is processing position parameters...");
-    
-    // Create a static 10-second buffer with no increment for testing
-    let mock_clock = GameClock {
-        active_player_time: std::time::Duration::from_secs(5),
-        opponent_time: std::time::Duration::from_secs(5),
-        increment: std::time::Duration::from_secs(0),
-    };
-
-    match futures::executor::block_on(app.search_engine.select_move(&app.game_state, Some(mock_clock))) {
-        Ok(best_move) => {
-            app.game_state.make_move(best_move);
-            app.log(&format!(
-                "AI (Negamax) executed transition: {} -> {}", 
-                best_move.from_square(), 
-                best_move.to_square()
-            ));
-        }
-        Err(e) => app.log(&format!("AI Error encountered: {}", e)),
+    // If the engine is already computing a move from a previous frame trigger, early-exit
+    if app.is_ai_searching {
+        return;
     }
+    
+    app.log("AI calculation thread initializing...");
+    app.is_ai_searching = true;
+
+    // Configure structural parameters and context tokens
+    let luts = core_engine::luts::EngineLUTs::get_engine_luts();
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let nodes_explored = std::sync::atomic::AtomicUsize::new(0);
+
+    let shared_progress = Arc::new(RwLock::new(SearchProgress {
+        candidates: Vec::new(),
+        depth_reached: 0,
+        nodes_explored: 0,
+        branching_factor: 0.0,
+    }));
+
+    // Clone inputs to safely transfer ownership to the background worker thread
+    let state_clone = app.game_state.clone();
+    let agent_clone = app.search_engine.clone(); // Assumes your engine pointer is wrapped in an Arc
+    let worker_cancelled = cancelled.clone();
+    let worker_progress = shared_progress.clone();
+    let evaluator = app.evaluator.clone(); // Accesses the underlying positional evaluator
+        
+    // Spawn an OS thread to run the search without locking up the user interface rendering loop
+    std::thread::spawn(move || {
+        let ctx = SearchContext {
+            cancelled: &worker_cancelled,
+            evaluator: evaluator.as_ref(),
+            luts,
+        };
+
+        // Execute the synchronous iterative deepen operation inside the worker space
+        agent_clone.search_position(&state_clone, &ctx, worker_progress);
+    });
+
+    // Spawn a companion supervisor timer thread to handle time budgeting boundaries
+    let timer_cancelled = cancelled.clone();
+    let time_budget = Duration::from_millis(500);
+    
+    std::thread::spawn(move || {
+        std::thread::sleep(time_budget);
+        // Intercept execution pathways gracefully if the computation cycle crosses our threshold
+        timer_cancelled.store(true, Ordering::Relaxed);
+    });
+
+    // Store references inside your App state map so the TUI frame updater can monitor progress
+    app.ai_search_progress = Some(shared_progress);
+    app.ai_cancellation_token = Some(cancelled);
 }

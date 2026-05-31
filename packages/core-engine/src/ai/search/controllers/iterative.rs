@@ -1,132 +1,112 @@
-use std::sync::atomic::Ordering;
-use std::time::{Duration, Instant};
-
-use crate::ai::search::{SearchContext, SearchResult};
-use crate::ai::search::algorithms::negamax::negamax;
-use crate::ai::{EvaluationScore, ScoredMove};
-use crate::ai::search::utils::{TranspositionTable, invert_score};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::RwLock;
+use crate::ai::search::algorithms::negamax::{NegamaxStateMachine, StepResult};
+use crate::ai::search::{SearchContext, SearchProgress, ScoredMove};
+use crate::ai::search::utils::TranspositionTable;
+use crate::ai::evaluator::EvaluationScore;
 use crate::rules::state::GameState;
+use crate::ai::search::ActiveTelemetry;
 
 pub struct IterativeDeepeningController<'a> {
-    ctx: SearchContext<'a>,
+    ctx: &'a SearchContext<'a>,
     min_depth: usize,
     max_depth: usize,
+    shared_progress: Arc<RwLock<SearchProgress>>,
 }
 
 impl<'a> IterativeDeepeningController<'a> {
-    pub fn new(ctx: SearchContext<'a>, min_depth: usize, max_depth: usize) -> Self {
-        Self { ctx, max_depth, min_depth }
+    pub fn new(
+        ctx: &'a SearchContext<'a>, 
+        min_depth: usize, 
+        max_depth: usize,
+        shared_progress: Arc<RwLock<SearchProgress>>,
+    ) -> Self {
+        Self { ctx, min_depth, max_depth, shared_progress }
     }
 
-    /// Iteratively deepens the search tree up to the configured ply limit.
-    /// Returns evaluations for all available root moves found during the deepest complete pass.
-    pub fn search(&self, true_state: & GameState, time_limit: Option<Duration>) -> SearchResult {
-        let start_time = Instant::now();
-        
-        let mut state = true_state.clone();
-        let mut final_result = SearchResult {
-            candidates: Vec::new(),
-            depth_reached: 0,
-            nodes_explored: 0,
-            branching_factor: 0.0
+    /// Drives the state-machine search through escalating plys.
+    pub fn search(&self, true_state: &GameState) {
+        let mut tt = TranspositionTable::with_capacity(20);
+        let telemetry = ActiveTelemetry {
+            nodes_explored: AtomicUsize::new(0),
         };
 
-        let mut legal_moves = state.generate_legal_moves(self.ctx.luts);
-        if legal_moves.is_empty() {
-            return final_result;
+        // Pre-populate root canvas with fallback defaults
+        let initial_moves = true_state.generate_legal_moves(self.ctx.luts);
+        {
+            let mut progress = self.shared_progress.write().unwrap();
+            progress.candidates = initial_moves.into_iter().map(|m| ScoredMove {
+                current_move: m,
+                score: EvaluationScore::Value(i32::MIN),
+            }).collect();
+            progress.depth_reached = 0;
+            progress.nodes_explored = 0;
+            progress.branching_factor = 0.0;
         }
 
-        let tt = &mut TranspositionTable::with_capacity(10);
-
         for current_depth in self.min_depth..=self.max_depth {
-            if let Some(limit) = time_limit {
-                if start_time.elapsed() >= limit {
-                    break;
-                }
+            if self.ctx.cancelled.load(Ordering::Relaxed) {
+                break;
             }
 
-            let mut current_ply_candidates = Vec::with_capacity(legal_moves.len());
-            let mut alpha = EvaluationScore::Value(i32::MIN);
-            let beta = EvaluationScore::Value(i32::MAX);
+            let mut machine = NegamaxStateMachine::new(
+                self.ctx,
+                &mut tt,
+                &telemetry,
+                true_state.clone(),
+                current_depth,
+            );
 
-            // Sort root options based on the best performer of the prior depth
-            if let Some(prev_best) = final_result.candidates.iter().max_by_key(|c| match c.score {
-                EvaluationScore::Value(v) => v,
-                EvaluationScore::Mating(_) => i32::MAX,
-                EvaluationScore::Mated(_) => i32::MIN
-            }) {
-                if let Some(pos) = legal_moves.iter().position(|&m| m == prev_best.current_move) {
-                    legal_moves.move_to_front(pos);
-                }
+            // Fetch the root frame to manage candidates at this depth layer
+            let root_moves_count = machine.stack[0].legal_moves.len();
+            if root_moves_count == 0 {
+                break;
             }
 
-            for &current_move in legal_moves.as_slice() {
-                if self.ctx.cancelled.load(Ordering::Relaxed) {
-                    break;
-                }
+            let mut layer_candidates = Vec::with_capacity(root_moves_count);
+            let mut status = StepResult::Deepen;
 
-                if let Some(limit) = time_limit {
-                    if start_time.elapsed() >= limit {
-                        self.ctx.cancelled.store(true, Ordering::Relaxed);
+            while !self.ctx.cancelled.load(Ordering::Relaxed) {
+                match status {
+                    StepResult::Deepen => {
+                        status = machine.step();
+                    }
+                    StepResult::Backtrack { score } => {
+                        // Captures evaluations returning directly back to root elements
+                        if machine.stack.len() == 1 {
+                            let explored_idx = machine.stack[0].move_idx - 1;
+                            let target_move = machine.stack[0].legal_moves[explored_idx];
+                            layer_candidates.push(ScoredMove {
+                                current_move: target_move,
+                                score,
+                            });
+                        }
+                        status = machine.handle_backtrack(score);
+                    }
+                    StepResult::Done { .. } => {
                         break;
                     }
                 }
-
-                state.make_move(current_move);
-
-                let score = invert_score(negamax(
-                    &self.ctx,
-                    tt,
-                    &state,
-                    current_depth - 1,
-                    invert_score(beta),
-                    invert_score(alpha),
-                ));
-
-                state.unmake_move(current_move);
-
-                if score > alpha {
-                    alpha = score;
-                }
-
-                current_ply_candidates.push(ScoredMove {
-                    current_move,
-                    score,
-                });
             }
 
-            // Commit the complete ply evaluation records only if execution was uninterrupted
+            // Commit results only if the full ply layer finished cleanly without cancellation interruptions
             if !self.ctx.cancelled.load(Ordering::Relaxed) {
-                let total_nodes = self.ctx.nodes_explored.load(Ordering::Relaxed);
-                
-                // Calculate Effective Branching Factor: d-th root of total nodes
+                let total_nodes = telemetry.nodes_explored.load(Ordering::Relaxed);
                 let ebf = if current_depth > 0 && total_nodes > 0 {
                     (total_nodes as f64).powf(1.0 / current_depth as f64)
                 } else {
                     0.0
                 };
-                final_result = SearchResult {
-                    candidates: current_ply_candidates,
-                    depth_reached: current_depth,
-                    nodes_explored: total_nodes,
-                    branching_factor: ebf,
-                };
+
+                let mut progress = self.shared_progress.write().unwrap();
+                progress.candidates = layer_candidates;
+                progress.depth_reached = current_depth;
+                progress.nodes_explored = total_nodes;
+                progress.branching_factor = ebf;
             } else {
                 break;
             }
         }
-
-        // Fallback safety layer to populate baseline options in case of immediate timeout
-        if final_result.candidates.is_empty() {
-            final_result.candidates = legal_moves
-                .into_iter()
-                .map(|m| ScoredMove {
-                    current_move: m,
-                    score: EvaluationScore::Value(i32::MIN),
-                })
-                .collect();
-        }
-
-        final_result
     }
 }

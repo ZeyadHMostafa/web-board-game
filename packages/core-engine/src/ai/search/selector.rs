@@ -1,6 +1,6 @@
 use rand::RngExt;
 use crate::rules::moves::Move;
-use crate::ai::search::SearchResult;
+use crate::ai::search::SearchProgress;
 use crate::ai::EvaluationScore;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -13,7 +13,7 @@ pub struct ActionSelector;
 
 impl ActionSelector {
     /// Dispatches move selection decisions according to the specified evaluation strategy.
-    pub fn select_move(result: &SearchResult, mode: SelectorMode) -> Option<Move> {
+    pub fn select_move(result: &SearchProgress, mode: SelectorMode) -> Option<Move> {
         if result.candidates.is_empty() {
             return None;
         }

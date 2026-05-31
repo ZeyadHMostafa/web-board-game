@@ -1,10 +1,12 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use crate::luts;
 use crate::rules::state::GameState;
 use crate::rules::moves::Move;
-use crate::simulation::{Agent, GameClock};
+use crate::simulation::Agent;
 use crate::ai::PositionEvaluator;
 use crate::ai::evaluator::EvaluationScore;
+use crate::ai::search::{SearchContext, SearchProgress, ScoredMove};
+use crate::ai::search::selector::{ActionSelector, SelectorMode};
 
 /// A rudimentary 1-ply picker that tests structural pipelines 
 /// by choosing the immediately highest scoring local position.
@@ -15,35 +17,24 @@ pub struct BasePickerSearch {
 
 impl BasePickerSearch {
     pub fn new(luts: &'static luts::EngineLUTs, evaluator: Arc<dyn PositionEvaluator>) -> Self {
-        Self { evaluator: evaluator , luts}
+        Self { evaluator, luts }
     }
 }
 
 impl Agent for BasePickerSearch {
-    async fn select_move(
-        &self, 
-        state: &GameState, 
-        time: Option<GameClock>
-    ) -> Result<Move, String> {
-        // Generate valid transitions for the active player.
-        // Assumes GameState provides an iterator or vector of legal active moves.
-        let legal_moves = state.generate_legal_moves(&self.luts);
-        
-        if legal_moves.is_empty() {
-            return Err("No legal moves available for current board state.".to_string());
-        }
-
-        let mut best_move = legal_moves[0];
-        let mut max_score = EvaluationScore::Value(i32::MIN);
+    fn search_position(
+        &self,
+        state: &GameState,
+        _ctx: &SearchContext,
+        shared_progress: Arc<RwLock<SearchProgress>>,
+    ) {
+        let legal_moves = state.generate_legal_moves(self.luts);
+        let mut layer_candidates = Vec::with_capacity(legal_moves.len());
 
         for current_move in legal_moves {
-            // Tentatively clone and apply transition to inspect perspective shifts
             let mut next_state = state.clone();
             next_state.make_move(current_move);
 
-            // Our evaluator evaluates positions from the perspective of the side whose turn it currently is.
-            // Since make_move switches the active side to our opponent, we invert the raw value evaluation
-            // to find the score relative to ourselves.
             let raw_score = self.evaluator.evaluate(&next_state);
             
             let relative_score = match raw_score {
@@ -52,12 +43,23 @@ impl Agent for BasePickerSearch {
                 EvaluationScore::Mated(d) => EvaluationScore::Mating(d + 1),
             };
 
-            if relative_score > max_score {
-                max_score = relative_score;
-                best_move = current_move;
-            }
+            layer_candidates.push(ScoredMove {
+                current_move,
+                score: relative_score,
+            });
         }
 
-        Ok(best_move)
+        let mut progress = shared_progress.write().unwrap();
+        progress.candidates = layer_candidates;
+        progress.depth_reached = 1;
+        progress.nodes_explored = progress.candidates.len();
+        progress.branching_factor = 1.0;
+    }
+
+    fn select_move(&self, progress: &SearchProgress) -> Result<Move, String> {
+        match ActionSelector::select_move(progress, SelectorMode::Competitive) {
+            Some(m) => Ok(m),
+            None => Err("BasePickerSearch failed to isolate a valid move selection.".to_string()),
+        }
     }
 }

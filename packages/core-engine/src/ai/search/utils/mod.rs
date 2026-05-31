@@ -1,6 +1,6 @@
 mod transposition_table;
 
-pub(crate) use transposition_table::{ HashEntryBounds, TranspositionTable, TranspositionEntry};
+pub(crate) use transposition_table::{ HashEntryBounds, TranspositionTable};
 
 
 use crate::ai::EvaluationScore;

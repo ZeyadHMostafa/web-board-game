@@ -1,21 +1,18 @@
-use std::sync::Arc;
-use core_engine::ai::{
-    EvaluationScore, PositionEvaluator,
-    heuristics::{HeuristicMatrix, evaluators},
-    models::static_dot::{
-        DEFAULT_EVALUATOR_WEIGHTS,
-        StaticDotProductEvaluator,
-        load_weights_from_npy
+use std::sync::{Arc, RwLock};
+use std::sync::atomic::AtomicBool;
+use core_engine::{
+    ai::{
+        EvaluationScore, PositionEvaluator,
+        heuristics::{HeuristicMatrix, evaluators},
+        models::static_dot::{
+            DEFAULT_EVALUATOR_WEIGHTS,
+            StaticDotProductEvaluator,
+            load_weights_from_npy
+        },
+        search::{SearchProgress, algorithms::negamax::NegamaxPlayAgent}
     },
-    search::algorithms::{
-        base_picker::BasePickerSearch, negamax::NegamaxAgent
-    }
-};
-
-use core_engine::simulation::Agent;
-use core_engine::luts::EngineLUTs;
-use core_engine::rules::state::{
-    GameState, Player, Bitboard
+    luts::EngineLUTs,
+    rules::state::{GameState, Player, Bitboard}
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,7 +55,7 @@ impl ActivePanelTab {
 pub struct App {
     // Core Engine Contexts (Owned once at application root)
     pub evaluator: Arc<dyn PositionEvaluator>,
-    pub search_engine: Box<NegamaxAgent>,
+    pub search_engine: Arc<NegamaxPlayAgent>,
 
     // Game Core State
     pub game_state: GameState,
@@ -73,6 +70,11 @@ pub struct App {
     pub active_tab: ActivePanelTab,
     pub message_log: String,
     pub running: bool,
+
+    // Background Thread Orchestration States
+    pub is_ai_searching: bool,
+    pub ai_search_progress: Option<Arc<RwLock<SearchProgress>>>,
+    pub ai_cancellation_token: Option<Arc<AtomicBool>>,
 }
 
 impl App {
@@ -80,14 +82,8 @@ impl App {
         // Resolve target weight vector matrix
         let final_weights = match weights_path {
             Some(path) => match load_weights_from_npy(path) {
-                Ok(loaded_matrix) => {
-                    // Successfully loaded trained parameters
-                    loaded_matrix
-                }
-                Err(_err) => {
-                    // Fall back to compilation constants if reading fails
-                    DEFAULT_EVALUATOR_WEIGHTS
-                }
+                Ok(loaded_matrix) => loaded_matrix,
+                Err(_err) => DEFAULT_EVALUATOR_WEIGHTS,
             }
             None => DEFAULT_EVALUATOR_WEIGHTS,
         };
@@ -95,7 +91,9 @@ impl App {
         // Instantiate structural components using the resolved weights
         let luts = EngineLUTs::get_engine_luts();
         let evaluator = Arc::new(StaticDotProductEvaluator::new(luts, final_weights));
-        let search_engine = Box::new(NegamaxAgent::new(luts, evaluator.clone(), 6));
+        
+        // Pass the structural lookups and static evaluator layers to match the updated parameters block
+        let search_engine = Arc::new(NegamaxPlayAgent::new( 2, 6));
 
         let mut app = Self {
             evaluator,
@@ -114,6 +112,9 @@ impl App {
                 String::from("System Boot Complete. Core modules linked using baseline static matrix.")
             },
             running: true,
+            is_ai_searching: false,
+            ai_search_progress: None,
+            ai_cancellation_token: None,
         };
         app.reset_to_starting_position();
         app
@@ -126,6 +127,15 @@ impl App {
         
         self.game_state = GameState::new(P1_START, P2_START, Player::P1);
         self.selection = SelectionState::None;
+        
+        // Ensure background calculations are dropped if the state resets abruptly mid-search
+        if let Some(ref cancel_token) = self.ai_cancellation_token {
+            cancel_token.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        self.is_ai_searching = false;
+        self.ai_search_progress = None;
+        self.ai_cancellation_token = None;
+
         self.log("Game state reset to initial competitive configuration.");
     }
 

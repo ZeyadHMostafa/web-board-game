@@ -5,6 +5,9 @@ use crossterm::{
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io;
+use std::time::Duration;
+use std::sync::atomic::Ordering;
+use core_engine::simulation::Agent;
 
 mod app;
 mod handler;
@@ -30,12 +33,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Redraw user interface based on current app mutations
         terminal.draw(|f| ui::render(f, &app))?;
 
-        // Synchronous keyboard block read listener
-        if let Event::Key(key_event) = event::read()? {
-            // Filter out internal key release echoes (relevant on Windows environments)
-            if key_event.kind == event::KeyEventKind::Press {
-                handler::handle_key_events(key_event, &mut app);
+        // Non-blocking poll checks for input for 16ms (~60 FPS frame target)
+        if event::poll(Duration::from_millis(16))? {
+            if let Event::Key(key_event) = event::read()? {
+                // Filter out internal key release echoes (relevant on Windows environments)
+                if key_event.kind == event::KeyEventKind::Press {
+                    handler::handle_key_events(key_event, &mut app);
+                }
             }
+        }
+
+        // Check background search state updates safely without blocking the UI framework
+        if !app.is_ai_searching {
+            continue;
+        }
+
+        let is_done = if let Some(ref cancel_token) = app.ai_cancellation_token {
+            cancel_token.load(Ordering::Relaxed)
+        } else {
+            false
+        };
+
+        if is_done {
+            if let Some(progress_lock) = app.ai_search_progress.take() {
+                let final_progress = progress_lock.read().unwrap();
+                
+                match app.search_engine.select_move(&final_progress) {
+                    Ok(best_move) => {
+                        app.game_state.make_move(best_move);
+                        app.log(&format!(
+                            "AI completed pass. Transition executed: {} -> {}", 
+                            best_move.from_square(), 
+                            best_move.to_square()
+                        ));
+                    }
+                    Err(e) => app.log(&format!("AI Error encountered selecting candidate: {}", e)),
+                }
+            }
+
+            // Clean up allocation pointers to prepare for future user inputs
+            app.ai_cancellation_token = None;
+            app.is_ai_searching = false;
         }
     }
 

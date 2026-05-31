@@ -12,6 +12,14 @@ pub struct ScoredMove {
 }
 
 mod evaluator {
+
+    mod scores{
+        pub const WIN:f32 = 1000.0;
+        pub const CUTOFF:f32 = 900.0;
+        pub const FACTOR:f32 = 1000.0;
+        pub const TURN_COST:f32 = 10.0;
+    }
+
     use crate::rules::state::GameState;
 
     /// Strong typing for evaluation bounds, handling standard scaling and explicit matings.
@@ -20,6 +28,16 @@ mod evaluator {
         Mated(u32),       // Distance to forced loss
         Value(i32),       // Continuous static/neural assessment metric
         Mating(u32),      // Distance to forced win
+    }
+
+    impl EvaluationScore {
+        pub fn to_float(self) -> f32{
+            match self {
+                EvaluationScore::Value(val) => (val as f32 / scores::FACTOR).clamp(-scores::CUTOFF,scores::CUTOFF),
+                EvaluationScore::Mating(n) => scores::WIN - scores::TURN_COST * (n as f32),
+                EvaluationScore::Mated(n) => -(scores::WIN - scores::TURN_COST * (n as f32)),
+            }
+        }
     }
 
     impl Default for EvaluationScore {

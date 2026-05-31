@@ -14,8 +14,10 @@ pub struct SimulationBatch {
 }
 
 mod agent {
-    use std::time::Duration;
-    use crate::rules::state::GameState;
+    use std::sync::{Arc, RwLock};
+use std::time::Duration;
+    use crate::ai::search::{SearchContext, SearchProgress};
+use crate::rules::state::GameState;
     use crate::rules::moves::Move;
 
     /// Keeps track of the remaining match time allocations.
@@ -26,15 +28,19 @@ mod agent {
         pub increment: Duration,
     }
 
-    /// The unified asynchronous engine blackbox interface.
-    /// This abstract agent can be wrapped by self-play loops, web servers, 
-    /// or WebAssembly UI components.
+    /// The unified synchronous engine interface.
+    /// Execution environments (OS threads, Web Workers, or simulations) are responsible 
+    /// for driving this interface and managing blocking or time thresholds via SearchContext.
     pub trait Agent: Send + Sync {
-        /// Computes the absolute best move given the current state and tracking context.
-        fn select_move(
-            &self, 
-            state: &GameState, 
-            clock: Option<GameClock>
-        ) -> impl std::future::Future<Output = Result<Move, String>> + Send;
+        /// Drives the internal controller to search a position, updating the shared progress reference in place.
+        fn search_position(
+            &self,
+            state: &GameState,
+            ctx: &SearchContext,
+            shared_progress: Arc<RwLock<SearchProgress>>,
+        );
+
+        /// Evaluates the final compiled search progress block to isolate the chosen move.
+        fn select_move(&self, progress: &SearchProgress) -> Result<Move, String>;
     }
 }

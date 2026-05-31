@@ -14,7 +14,6 @@ pub struct TranspositionEntry {
     pub depth: usize,                // The depth of the search that found this score
     pub bounds: HashEntryBounds,     // How reliable this score is
 }
-
 pub struct TranspositionTable {
     table: Vec<Option<TranspositionEntry>>,
     mask: usize,
@@ -30,22 +29,40 @@ impl TranspositionTable {
     }
 
     #[inline(always)]
+    fn get_table_index(&self, state: &GameState) -> (u128, usize) {
+        let key = self.make_key(state);
+        
+        // Fold the 128-bit board identity layer down to a 64-bit integer
+        let mut hash = ((key >> 64) ^ key) as u64;
+        
+        // MurmurHash3 finalizer mixer constants to guarantee bit avalanching
+        hash ^= hash >> 33;
+        hash = hash.wrapping_mul(0xff51afd7ed558ccd);
+        hash ^= hash >> 33;
+        hash = hash.wrapping_mul(0xc4ceb9fe1a85ec53);
+        hash ^= hash >> 33;
+
+        let index = (hash as usize) & self.mask;
+        (key, index)
+    }
+
+    #[inline(always)]
     fn make_key(&self, state: &GameState) -> u128 {
-        // Pack both 64-bit bitboards into a unified 128-bit identity signature
-        let mut key = ((state.p1_pieces.0 as u128) << 64) | (state.p2_pieces.0 as u128);
-        // Safely tag the active player bit at the absolute end
-        if state.active_player == Player::P2 {
-            key |= 1 << 127;
-        }
-        key
+        // Dynamically assign local variables based on who is currently making the decision
+        let (active_pieces, opponent_pieces) = match state.active_player {
+            Player::P1 => (state.p1_pieces.0, state.p2_pieces.0),
+            Player::P2 => (state.p2_pieces.0, state.p1_pieces.0), // Mirror perspective!
+        };
+
+        // Pack them into a unified 128-bit identity signature.
+        // No extra bit tracking needed—the layout itself inherently dictates whose perspective this score belongs to.
+        ((active_pieces as u128) << 64) | (opponent_pieces as u128)
     }
 
     /// Looks up a state. Returns the entry only if it matches our exact board state.
     #[inline(always)]
-    pub fn lookup(&self, state: &GameState) -> Option<TranspositionEntry> {
-        let key = self.make_key(state);
-        // Fast modulo using bitwise AND (works because size is a power of two)
-        let index = (key as usize) & self.mask; 
+    pub fn lookup(&mut self, state: &GameState) -> Option<TranspositionEntry> {
+        let (key, index) = self.get_table_index(state);
         
         if let Some(entry) = self.table[index] {
             if entry.state_key == key {
@@ -58,13 +75,11 @@ impl TranspositionTable {
     /// Stores a newly calculated score into the table, overwriting old shallow data.
     #[inline(always)]
     pub fn store(&mut self, state: &GameState, score: EvaluationScore, depth: usize, bounds: HashEntryBounds) {
-        let key = self.make_key(state);
-        let index = (key as usize) & self.mask;
+        let (key, index) = self.get_table_index(state);
 
-        // Replacement Strategy: Overwrite if slot is empty, or if new search is deeper
         if let Some(existing) = self.table[index] {
             if existing.depth > depth && existing.state_key == key {
-                return; // Keep the deeper, more valuable data
+                return;
             }
         }
 

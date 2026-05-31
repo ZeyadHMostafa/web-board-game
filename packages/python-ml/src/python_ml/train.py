@@ -15,13 +15,15 @@ def train(output_dir="training_run_01"):
     final_weights_file = os.path.join(output_dir, "trained_weights.npy")
 
     NUM_GAMES_PER_BATCH = 100
-    SEARCH_DEPTH = 5
-    EPOCHS = 320
+    SEARCH_DEPTH = 4
+    EPOCHS = 330
     
-    P1_START_MASK = 0x000000000000FFFF
-    P2_START_MASK = 0xFFFF000000000000
-    # P1_START_MASK = 0x000000003C3C3C3C
-    # P2_START_MASK = 0x3C3C3C3C00000000
+    P1_START_MASK = 0x0000_0000_003C_7E7E
+    P2_START_MASK = 0x7E7E_3C00_0000_0000
+    # P1_START_MASK = 0x0000_0000_0000_FFFF
+    # P2_START_MASK = 0xFFFF_0000_0000_0000
+    # P1_START_MASK = 0x0000_0000_3C3C_3C3C
+    # P2_START_MASK = 0x3C3C_3C3C_0000_0000
 
     model = torch.nn.Linear(108, 1, bias=False)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.05)
