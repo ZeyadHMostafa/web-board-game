@@ -24,8 +24,8 @@ dist-ssr/
 # Rust Engine (packages/core-engine)
 # ==============================================================================
 # Block the massive build artifact directory
-/target/
-/profiling/
+target/
+profiling/
 
 # Cargo.lock is usually kept for binary apps, but for libraries inside 
 # workspaces, it's often ignored. We'll leave it to track at the root if needed.
