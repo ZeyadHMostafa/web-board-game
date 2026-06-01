@@ -1,6 +1,8 @@
 use crate::rules::state::Bitboard;
 use crate::luts::EngineLUTs;
 use crate::rules::moves::{Move, MoveList, generate_piece_moves};
+use std::fmt::Formatter;
+use std::fmt::Debug;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Player {
@@ -19,11 +21,42 @@ impl Player {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GameState {
     pub p1_pieces: Bitboard,
     pub p2_pieces: Bitboard,
     pub active_player: Player,
+}
+
+impl Debug for GameState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "GameState {{")?;
+        writeln!(f, "  Active Player: {:?}", self.active_player)?;
+        writeln!(f, "  Board Topology:")?;
+        
+        // Print the board from Rank 8 down to Rank 1
+        for rank in (0..8).rev() {
+            write!(f, "    {} |", rank + 1)?;
+            for file in 0..8 {
+                let idx = rank * 8 + file;
+                
+                if self.p1_pieces.has_bit(idx) {
+                    write!(f, " 1")?;
+                } else if self.p2_pieces.has_bit(idx) {
+                    write!(f, " 2")?;
+                } else {
+                    write!(f, " .")?;
+                }
+            }
+            writeln!(f)?;
+        }
+        
+        writeln!(f, "        -----------------")?;
+        writeln!(f, "          A B C D E F G H")?;
+        writeln!(f, "  P1 Raw: 0x{:016X}", self.p1_pieces.0)?;
+        writeln!(f, "  P2 Raw: 0x{:016X}", self.p2_pieces.0)?;
+        write!(f, "}}")
+    }
 }
 
 impl GameState {

@@ -2,9 +2,9 @@ use crate::{ai::EvaluationScore, rules::state::{GameState, Player}};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HashEntryBounds {
-    Exact,       // We searched this node fully; the score is precise.
-    AlphaLower,  // The search failed-low (it's worse than alpha); this is an upper bound.
-    BetaUpper,   // The search failed-high (caused a beta cutoff); this is a lower bound.
+    Exact,      // Value is precise (Alpha < score < Beta)
+    Upper,      // Fail-Low: The true value is <= score (Upper Bound)
+    Lower,      // Fail-High: The true value is >= score (Lower Bound)
 }
 
 #[derive(Clone, Copy, Debug)]

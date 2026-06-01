@@ -134,7 +134,7 @@ fn trigger_ai_move(app: &mut App) {
 
     // Spawn a companion supervisor timer thread to handle time budgeting boundaries
     let timer_cancelled = cancelled.clone();
-    let time_budget = Duration::from_millis(500);
+    let time_budget = Duration::from_millis(1000);
     
     std::thread::spawn(move || {
         std::thread::sleep(time_budget);

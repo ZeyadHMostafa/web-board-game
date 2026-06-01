@@ -44,13 +44,9 @@ impl NegamaxSimulationAgent {
             return None;
         }
 
-        let best_candidate = search_result.candidates
-            .iter()
-            .max_by_key(|c| match c.score {
-                EvaluationScore::Value(v) => v,
-                EvaluationScore::Mating(_) => i32::MAX,
-                EvaluationScore::Mated(_) => i32::MIN,
-            })?;
+        // Get the ideal competitive move to serve as a value baseline target
+        let best_move = ActionSelector::select_move(&search_result, SelectorMode::Competitive)?;
+        let best_candidate = search_result.candidates.iter().find(|c| c.current_move == best_move)?;
 
         let mode = SelectorMode::TrainingExploration { epsilon: self.epsilon };
         let chosen_move = ActionSelector::select_move(&search_result, mode)?;

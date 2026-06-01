@@ -15,6 +15,7 @@ pub struct SearchFrame {
     pub original_alpha: EvaluationScore,
 }
 
+#[derive(Debug)]
 pub enum StepResult {
     /// The state machine needs to evaluate a child node, requiring a step deeper into the tree.
     Deepen,

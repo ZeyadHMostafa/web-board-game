@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::RwLock;
 use crate::ai::search::algorithms::negamax::{NegamaxStateMachine, StepResult};
 use crate::ai::search::{SearchContext, SearchProgress, ScoredMove};
-use crate::ai::search::utils::TranspositionTable;
+use crate::ai::search::utils::{TranspositionTable, invert_score};
 use crate::ai::evaluator::EvaluationScore;
 use crate::rules::state::GameState;
 use crate::ai::search::ActiveTelemetry;
@@ -38,7 +38,7 @@ impl<'a> IterativeDeepeningController<'a> {
             let mut progress = self.shared_progress.write().unwrap();
             progress.candidates = initial_moves.into_iter().map(|m| ScoredMove {
                 current_move: m,
-                score: EvaluationScore::Value(i32::MIN),
+                score: EvaluationScore::Mated(0),
             }).collect();
             progress.depth_reached = 0;
             progress.nodes_explored = 0;
@@ -68,26 +68,38 @@ impl<'a> IterativeDeepeningController<'a> {
             let mut status = StepResult::Deepen;
 
             while !self.ctx.cancelled.load(Ordering::Relaxed) {
-                match status {
-                    StepResult::Deepen => {
-                        status = machine.step();
+                // Loop internally to flush out consecutive Backtracks immediately 
+                // before printing diagnostic frame telemetry
+                while let StepResult::Backtrack { score } = status {
+                    if machine.stack.len() == 1 {
+                        let explored_idx = machine.stack[0].move_idx - 1;
+                        let target_move = machine.stack[0].legal_moves[explored_idx];
+                        let root_perspective_score = invert_score(score); 
+
+                        layer_candidates.push(ScoredMove {
+                            current_move: target_move,
+                            score: root_perspective_score, // This safely becomes Mating(3)
+                        });
                     }
-                    StepResult::Backtrack { score } => {
-                        // Captures evaluations returning directly back to root elements
-                        if machine.stack.len() == 1 {
-                            let explored_idx = machine.stack[0].move_idx - 1;
-                            let target_move = machine.stack[0].legal_moves[explored_idx];
-                            layer_candidates.push(ScoredMove {
-                                current_move: target_move,
-                                score,
-                            });
-                        }
-                        status = machine.handle_backtrack(score);
-                    }
-                    StepResult::Done { .. } => {
-                        break;
-                    }
+                    status = machine.handle_backtrack(score);
                 }
+
+                if let StepResult::Done { .. } = status {
+                    break;
+                }
+                
+                // println!("\n\n");
+                // println!("{:?}",status);
+                // println!("depth: {}", machine.stack.len()-1);
+                // if let Some(frame) = machine.stack.last(){
+                //     println!("move idx:{}", frame.move_idx);
+                //     println!("alpha:{:?}", frame.alpha);
+                //     println!("beta:{:?}", frame.beta);
+                //     println!("legal move count: {}", frame.legal_moves.len());
+                // }
+                // println!("current player: {:?}", machine.state.active_player);
+                // println!("{:?}", machine.state);
+                status = machine.step();
             }
 
             // Commit results only if the full ply layer finished cleanly without cancellation interruptions

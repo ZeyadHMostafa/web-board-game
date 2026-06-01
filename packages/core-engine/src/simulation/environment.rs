@@ -74,11 +74,12 @@ impl SimulationEnvironment {
         move_count: usize,
     ) {
         if is_drawn || move_count >= self.max_moves {
-            samples.push(TrainingSample {
-                features: NegamaxSimulationAgent::extract_features(state, self.luts),
-                target_score: 0.0,
-            });
+            // drop move, not worth adding
+            // there are no true draws in the game
+            // this is just used to stop games where
+            // it converged to a stand-off
         } else if state.is_lost(self.luts) {
+            println!("player lost");
             samples.push(TrainingSample {
                 features: NegamaxSimulationAgent::extract_features(state, self.luts),
                 target_score: -1000.0,

@@ -12,7 +12,11 @@ pub fn invert_score(score: EvaluationScore) -> EvaluationScore {
             let inverted = v.checked_neg().unwrap_or(i32::MAX);
             EvaluationScore::Value(inverted)
         }
-        EvaluationScore::Mating(d) => EvaluationScore::Mated(d + 1),
-        EvaluationScore::Mated(d) => EvaluationScore::Mating(d + 1),
+        EvaluationScore::Mating(d) => {
+            EvaluationScore::Mated(d + 1)
+        },
+        EvaluationScore::Mated(d) => {
+            EvaluationScore::Mating(d + 1)
+        },
     }
 }

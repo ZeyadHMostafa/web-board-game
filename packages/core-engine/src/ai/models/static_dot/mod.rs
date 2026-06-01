@@ -16,5 +16,5 @@ use std::sync::Arc;
 pub struct TrainableDotProductEvaluator {
     luts: &'static EngineLUTs,
     // Flattened weight array: 3 * 6 * 3 * 2 = 108 elements
-    weights: Arc<Vec<i32>>, 
+    pub weights: Arc<Vec<i32>>, 
 }

@@ -46,6 +46,7 @@ pub fn evaluate_move(m:&Move, allied_pieces: Bitboard, enemy_pieces: Bitboard) -
         move_score += destination_allied_density * 20;
     }
 
+    // println!("sorting move: is_capture = {}", is_capture);
     // Invert the score so the highest values sort to the front of the list
     -move_score
 }

@@ -1,7 +1,5 @@
 use crate::{
-    ai::{EvaluationScore, heuristics::evaluators},
-    rules::state::{GameState, Player},
-    luts::EngineLUTs
+    ai::{EvaluationScore, heuristics::{SovereigntyState, evaluators}}, luts::EngineLUTs, rules::state::{GameState, Player}
 };
 
 /// Global pre-computed weights matrix for quick initialization across files.
@@ -72,6 +70,7 @@ where
     );
 
     let mut total_score: i32 = 0;
+    let mut player_move_count :u8 = 0;
 
     // Vectorized dot product execution over the 108 structural features
     for t in 0..3 {
@@ -81,12 +80,22 @@ where
                     let count = matrix.values[t][s][r][p] as i32;
                     let weight = weight_lookup(t, s, r, p);
                     total_score += count * weight;
+                    
+                    // count number of moves player has
+                    player_move_count += ( ! (
+                        s==SovereigntyState::NoConflict as usize ||
+                        s==SovereigntyState::EnemyUncontested as usize
+                    ) )as u8; 
                 }
             }
         }
     }
 
-    EvaluationScore::Value(total_score)
+    if player_move_count==0{
+        EvaluationScore::Mated(0)
+    } else {
+        EvaluationScore::Value(total_score)
+    }
 }
 
 use std::fs::File;

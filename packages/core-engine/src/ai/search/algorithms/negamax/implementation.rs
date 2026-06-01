@@ -16,6 +16,31 @@ pub struct NegamaxStateMachine<'a, T: SearchTelemetry> {
     pub max_depth: usize,
 }
 
+// if false && let Some(entry) = self.tt.lookup(&self.state) {
+//                     if entry.depth >= remaining_depth {
+//                         match entry.bounds {
+//                             HashEntryBounds::Exact => {
+//                                 frame.max_score = entry.score;
+//                                 return self.finalize_and_backtrack();
+//                             }
+//                             HashEntryBounds::AlphaLower => {
+//                                 // Lower bound: True value is >= entry.score
+//                                 if entry.score >= frame.beta {
+//                                     frame.max_score = entry.score;
+//                                     return self.finalize_and_backtrack();
+//                                 }
+//                             }
+//                             HashEntryBounds::BetaUpper => {
+//                                 // Upper bound: True value is <= entry.score
+//                                 if entry.score <= frame.alpha {
+//                                     frame.max_score = entry.score;
+//                                     return self.finalize_and_backtrack();
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+
 impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
     pub fn new(
         ctx: &'a SearchContext<'a>,
@@ -38,8 +63,8 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
 
     /// Initializes the initial search frame at the root of the tree.
     fn push_root_frame(&mut self) {
-        let alpha = EvaluationScore::Value(i32::MIN);
-        let beta = EvaluationScore::Value(i32::MAX);
+        let alpha = EvaluationScore::Mated(0);
+        let beta = EvaluationScore::Mating(0);
         
         let mut legal_moves = self.state.generate_legal_moves(self.ctx.luts);
         if !legal_moves.is_empty() && self.max_depth > 1 {
@@ -55,7 +80,7 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
             legal_moves,
             alpha,
             beta,
-            max_score: EvaluationScore::Value(i32::MIN),
+            max_score: EvaluationScore::Mated(0),
             original_alpha: alpha,
         });
     }
@@ -71,55 +96,72 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
 
         self.telemetry.record_node_explored();
 
+        // 1. Snag a mutable reference to the active layout frame
         if let Some(frame) = self.stack.last_mut() {
+            
+            // First-time Node Initialization Logic
             if frame.move_idx == 0 {
                 if let Some(entry) = self.tt.lookup(&self.state) {
                     if entry.depth >= remaining_depth {
+                        let mut hit = false;
                         match entry.bounds {
                             HashEntryBounds::Exact => {
-                                // Corrected: This value is already oriented to our perspective.
-                                // We update max_score directly and call finalize to avoid double inversion!
-                                frame.max_score = entry.score;
-                                return self.finalize_and_backtrack();
+                                hit = true;
                             }
-                            HashEntryBounds::AlphaLower => {
-                                // Fail-low entry: The true value is guaranteed <= entry.score
-                                if entry.score <= frame.alpha {
-                                    frame.max_score = entry.score;
-                                    return self.finalize_and_backtrack();
-                                }
-                            }
-                            HashEntryBounds::BetaUpper => {
-                                // Fail-high entry: The true value is guaranteed >= entry.score
+                            HashEntryBounds::Lower => { 
+                                // Lower bound means the true value is >= entry.score.
+                                // If it is already >= our beta cutoff, we can prune!
                                 if entry.score >= frame.beta {
-                                    frame.max_score = entry.score;
-                                    return self.finalize_and_backtrack();
+                                    hit = true;
                                 }
+                            }
+                            HashEntryBounds::Upper => { 
+                                // Upper bound means the true value is <= entry.score.
+                                // If it is already <= our alpha, it's useless to search further.
+                                if entry.score <= frame.alpha {
+                                    hit = true;
+                                }
+                            }
+                        }
+
+                        if hit {
+                            self.stack.pop(); 
+
+                            if self.stack.is_empty() {
+                                return StepResult::Done { best_score: entry.score };
+                            } else {
+                                return StepResult::Backtrack { score: entry.score };
                             }
                         }
                     }
                 }
-
+                // Check physical game termination (Checkmate / Stalemate)
+                if frame.legal_moves.is_empty() {
+                    frame.max_score = EvaluationScore::Mated(0);
+                    // println!("mate detected here, calling finalize and back track!");
+                    return self.finalize_and_backtrack();
+                }
+                
+                // Check depth limit exhaustion
                 if remaining_depth == 0 {
                     let score = self.ctx.evaluator.evaluate(&self.state);
-                    return StepResult::Backtrack { score };
-                }
-
-                if frame.legal_moves.is_empty() {
-                    return StepResult::Backtrack { score: EvaluationScore::Mated(0) };
+                    // FIX: Mutate frame score directly and pop cleanly via structural logic
+                    frame.max_score = score;
+                    return self.finalize_and_backtrack();
                 }
             }
 
+            // If we have exhausted all legal options at this node
             if frame.move_idx >= frame.legal_moves.len() {
                 return self.finalize_and_backtrack();
             }
 
+            // Pull the next candidate move from the collection
             let chosen_move = frame.legal_moves[frame.move_idx];
             frame.move_idx += 1;
 
             self.state.make_move(chosen_move);
 
-            // Compute alpha-beta bounds for the child node path
             let next_alpha = invert_score(frame.beta);
             let next_beta = invert_score(frame.alpha);
 
@@ -138,7 +180,7 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
                 legal_moves: next_legal_moves,
                 alpha: next_alpha,
                 beta: next_beta,
-                max_score: EvaluationScore::Value(i32::MIN),
+                max_score: EvaluationScore::Mated(0),
                 original_alpha: next_alpha,
             });
 
@@ -151,7 +193,6 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
     /// Processes a completed node value returned from a child branch execution.
     pub fn handle_backtrack(&mut self, child_score: EvaluationScore) -> StepResult {
         if let Some(last_frame) = self.stack.last_mut() {
-            // Only unmake a move if we actually shifted the board state to evaluate a child
             if last_frame.move_idx > 0 {
                 let last_executed_move = last_frame.legal_moves[last_frame.move_idx - 1];
                 self.state.unmake_move(last_executed_move);
@@ -161,11 +202,17 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
         let relative_score = invert_score(child_score);
         
         if let Some(frame) = self.stack.last_mut() {
-            // If this frame was evaluated early (move_idx == 0), it acts as an immediate leaf value
-            if frame.move_idx == 0 {
-                frame.max_score = relative_score;
-                return self.finalize_and_backtrack();
-            }
+            // FIX: Removed the early-return "if frame.move_idx == 0" check.
+            // Terminal leaf logic is now gracefully managed inside step()!
+
+
+            // println!("\n\n");
+            // println!("BACKTRACK trace:");
+            // println!("before:");
+            // println!("relative score: {:?}",relative_score);
+            // println!("max score: {:?}",frame.max_score);
+            // println!("alpha: {:?}",frame.alpha);
+            // println!("beta: {:?}",frame.beta);
 
             if relative_score > frame.max_score {
                 frame.max_score = relative_score;
@@ -174,6 +221,11 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
             if frame.max_score > frame.alpha {
                 frame.alpha = frame.max_score;
             }
+            // println!("after:");
+            // println!("relative score: {:?}",relative_score);
+            // println!("max score: {:?}",frame.max_score);
+            // println!("alpha: {:?}",frame.alpha);
+            // println!("beta: {:?}",frame.beta);
 
             // Trigger a cut-off immediately if alpha meets or exceeds beta boundaries
             if frame.alpha >= frame.beta {
@@ -196,9 +248,9 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
             let remaining_depth = self.max_depth - self.stack.len();
             
             let bounds = if frame.max_score <= frame.original_alpha {
-                HashEntryBounds::AlphaLower
+                HashEntryBounds::Upper  // Fail-low: True value is <= max_score
             } else if frame.max_score >= frame.beta {
-                HashEntryBounds::BetaUpper
+                HashEntryBounds::Lower  // Fail-high: True value is >= max_score
             } else {
                 HashEntryBounds::Exact
             };

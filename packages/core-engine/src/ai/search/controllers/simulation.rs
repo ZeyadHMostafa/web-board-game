@@ -1,7 +1,7 @@
 use crate::ai::ScoredMove;
 use crate::ai::search::{NoOpTelemetry, SearchContext, SearchProgress};
 use crate::ai::search::algorithms::negamax::{NegamaxStateMachine, StepResult};
-use crate::ai::search::utils::TranspositionTable;
+use crate::ai::search::utils::{TranspositionTable, invert_score};
 use crate::ai::evaluator::EvaluationScore;
 use crate::rules::state::GameState;
 
@@ -73,7 +73,7 @@ impl<'a> SimulationController<'a> {
                         let target_move = machine.stack[0].legal_moves[explored_idx];
                         candidates.push(ScoredMove {
                             current_move: target_move,
-                            score,
+                            score: invert_score(score), //final invert to set move from out prespective
                         });
                     }
                     status = machine.handle_backtrack(score);

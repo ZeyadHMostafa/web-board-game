@@ -21,8 +21,8 @@ impl ActionSelector {
         // Helper closure to extract the underlying scalar integer value from variant wrappers
         let extract_score_value = |score: EvaluationScore| match score {
             EvaluationScore::Value(v) => v,
-            EvaluationScore::Mating(_) => i32::MAX,
-            EvaluationScore::Mated(_) => i32::MIN,
+            EvaluationScore::Mating(ply) => i32::MAX - (ply as i32),
+            EvaluationScore::Mated(ply) => i32::MIN + (ply as i32),
         };
 
         match mode {
