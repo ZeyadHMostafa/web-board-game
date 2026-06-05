@@ -93,7 +93,7 @@ impl App {
         let evaluator = Arc::new(StaticDotProductEvaluator::new(luts, final_weights));
         
         // Pass the structural lookups and static evaluator layers to match the updated parameters block
-        let search_engine = Arc::new(NegamaxPlayAgent::new( 2, 6));
+        let search_engine = Arc::new(NegamaxPlayAgent::new( 2, 12));
 
         let mut app = Self {
             evaluator,

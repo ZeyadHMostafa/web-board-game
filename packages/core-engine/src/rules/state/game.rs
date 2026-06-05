@@ -51,8 +51,8 @@ impl Debug for GameState {
             writeln!(f)?;
         }
         
-        writeln!(f, "        -----------------")?;
-        writeln!(f, "          A B C D E F G H")?;
+        writeln!(f, "      -----------------")?;
+        writeln!(f, "        A B C D E F G H")?;
         writeln!(f, "  P1 Raw: 0x{:016X}", self.p1_pieces.0)?;
         writeln!(f, "  P2 Raw: 0x{:016X}", self.p2_pieces.0)?;
         write!(f, "}}")
@@ -75,6 +75,15 @@ impl GameState {
         match player {
             Player::P1 => self.p1_pieces,
             Player::P2 => self.p2_pieces,
+        }
+    }
+
+    /// Helper to get the pieces belonging to a both players in relative order.
+    #[inline(always)]
+    pub fn get_player_pieces_relative(&self) -> (Bitboard,Bitboard) {
+        match self.active_player {
+            Player::P1 => (self.p1_pieces, self.p2_pieces),
+            Player::P2 => (self.p2_pieces, self.p1_pieces)
         }
     }
 

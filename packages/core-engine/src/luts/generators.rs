@@ -196,3 +196,46 @@ pub(super) const fn generate_topology_maps() -> [u8; 64] {
 
     idx_table
 }
+
+pub(super) const fn generate_centrality_lut() -> [u8; 64] {
+    let mut lut = [0u8; 64];
+    let mut i = 0;
+
+    while i < 64 {
+        let rank = i / 8;
+        let file = i % 8;
+
+        // Calculate distance from the center (3 or 4)
+        let rank_dist = if rank < 4 { 3 - rank } else { rank - 4 };
+        let file_dist = if file < 4 { 3 - file } else { file - 4 };
+
+        // Manual max implementation for const context
+        let dist = if rank_dist > file_dist { rank_dist } else { file_dist };
+
+        lut[i] = 3 - dist as u8;
+        i += 1;
+    }
+    
+    lut
+}
+
+pub(super) const CENTRALITY_RINGS: [u64; 4] = {
+    let mut rings = [0u64; 4];
+    let mut i = 0;
+
+    while i < 64 {
+        let rank = i / 8;
+        let file = i % 8;
+
+        let rank_dist = if rank < 4 { 3 - rank } else { rank - 4 };
+        let file_dist = if file < 4 { 3 - file } else { file - 4 };
+        
+        let dist = if rank_dist > file_dist { rank_dist } else { file_dist };
+        let ring_idx = 3 - dist;
+
+        rings[ring_idx] |= 1 << i;
+        i += 1;
+    }
+    
+    rings
+};

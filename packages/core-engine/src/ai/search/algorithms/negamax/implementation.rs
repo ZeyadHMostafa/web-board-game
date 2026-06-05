@@ -3,6 +3,7 @@ use crate::ai::search::algorithms::negamax::{SearchFrame, StepResult};
 use crate::ai::search::{SearchContext, SearchTelemetry};
 use crate::ai::search::utils::{HashEntryBounds, TranspositionTable, invert_score};
 use crate::ai::heuristics::evaluators;
+use crate::rules::moves::Move;
 use crate::rules::state::GameState;
 
 use crate::ai::evaluator::EvaluationScore;
@@ -15,31 +16,6 @@ pub struct NegamaxStateMachine<'a, T: SearchTelemetry> {
     pub stack: Vec<SearchFrame>,
     pub max_depth: usize,
 }
-
-// if false && let Some(entry) = self.tt.lookup(&self.state) {
-//                     if entry.depth >= remaining_depth {
-//                         match entry.bounds {
-//                             HashEntryBounds::Exact => {
-//                                 frame.max_score = entry.score;
-//                                 return self.finalize_and_backtrack();
-//                             }
-//                             HashEntryBounds::AlphaLower => {
-//                                 // Lower bound: True value is >= entry.score
-//                                 if entry.score >= frame.beta {
-//                                     frame.max_score = entry.score;
-//                                     return self.finalize_and_backtrack();
-//                                 }
-//                             }
-//                             HashEntryBounds::BetaUpper => {
-//                                 // Upper bound: True value is <= entry.score
-//                                 if entry.score <= frame.alpha {
-//                                     frame.max_score = entry.score;
-//                                     return self.finalize_and_backtrack();
-//                                 }
-//                             }
-//                         }
-//                     }
-//                 }
 
 impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
     pub fn new(
@@ -71,7 +47,7 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
             let allied_pieces = self.state.get_player_pieces(self.state.active_player);
             let enemy_pieces = self.state.get_player_pieces(self.state.active_player.opponent());
             legal_moves.sort_unstable_by_key(|m| {
-                evaluators::evaluate_move(m, allied_pieces, enemy_pieces)
+                evaluators::evaluate_move(m, allied_pieces, enemy_pieces, self.ctx.luts)
             });
         }
 
@@ -82,13 +58,14 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
             beta,
             max_score: EvaluationScore::Mated(0),
             original_alpha: alpha,
+            pv_line: Vec::with_capacity(self.max_depth)
         });
     }
 
     /// Advances the state machine by exactly one operation.
     pub fn step(&mut self) -> StepResult {
         if self.ctx.cancelled.load(Ordering::Relaxed) {
-            return StepResult::Done { best_score: EvaluationScore::Value(0) };
+            return StepResult::Done { best_score: EvaluationScore::Value(0), pv: Vec::new() };
         }
 
         let current_depth = self.stack.len() - 1;
@@ -128,9 +105,10 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
                             self.stack.pop(); 
 
                             if self.stack.is_empty() {
-                                return StepResult::Done { best_score: entry.score };
+                                //TODO: add lines during transposition table tracking
+                                return StepResult::Done { best_score: entry.score, pv: Vec::new() };
                             } else {
-                                return StepResult::Backtrack { score: entry.score };
+                                return StepResult::Backtrack { score: entry.score, pv: Vec::new() };
                             }
                         }
                     }
@@ -171,7 +149,7 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
                 let allied_pieces = self.state.get_player_pieces(self.state.active_player);
                 let enemy_pieces = self.state.get_player_pieces(self.state.active_player.opponent());
                 next_legal_moves.sort_unstable_by_key(|m| {
-                    evaluators::evaluate_move(m, allied_pieces, enemy_pieces)
+                    evaluators::evaluate_move(m, allied_pieces, enemy_pieces, self.ctx.luts)
                 });
             }
 
@@ -182,54 +160,65 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
                 beta: next_beta,
                 max_score: EvaluationScore::Mated(0),
                 original_alpha: next_alpha,
+                pv_line: Vec::new(),
             });
 
             StepResult::Deepen
         } else {
-            StepResult::Done { best_score: EvaluationScore::Value(0) }
+            StepResult::Done { best_score: EvaluationScore::Value(0), pv: Vec::new() }
         }
     }
 
     /// Processes a completed node value returned from a child branch execution.
-    pub fn handle_backtrack(&mut self, child_score: EvaluationScore) -> StepResult {
+    pub fn handle_backtrack(&mut self, child_score: EvaluationScore, child_pv: Vec<Move>) -> StepResult {
+        let mut last_executed_move = None;
         if let Some(last_frame) = self.stack.last_mut() {
             if last_frame.move_idx > 0 {
-                let last_executed_move = last_frame.legal_moves[last_frame.move_idx - 1];
-                self.state.unmake_move(last_executed_move);
+                let m = last_frame.legal_moves[last_frame.move_idx - 1];
+                last_executed_move = Some(m);
+                self.state.unmake_move(m);
             }
         }
 
         let relative_score = invert_score(child_score);
+        let is_root = self.stack.len() == 1;
         
         if let Some(frame) = self.stack.last_mut() {
-            // FIX: Removed the early-return "if frame.move_idx == 0" check.
-            // Terminal leaf logic is now gracefully managed inside step()!
-
 
             // println!("\n\n");
             // println!("BACKTRACK trace:");
-            // println!("before:");
             // println!("relative score: {:?}",relative_score);
             // println!("max score: {:?}",frame.max_score);
-            // println!("alpha: {:?}",frame.alpha);
             // println!("beta: {:?}",frame.beta);
-
+            // println!("alpha: {:?}",frame.alpha);
             if relative_score > frame.max_score {
                 frame.max_score = relative_score;
+                
+                // build PV
+                if let Some(m) = last_executed_move {
+                    let mut new_pv = Vec::with_capacity(child_pv.len() + 1);
+                    new_pv.push(m);          // Prepend the current move that led to this score
+                    new_pv.extend(child_pv);  // Append the child's downstream response strategy
+                    frame.pv_line = new_pv;   // Save it to this frame
+                }
             }
+            
+            
+            if is_root {
+                // At the root, we DO NOT tighten alpha. We keep it wide open (original_alpha)
+                // so that subsequent sibling moves don't get choked.
+            } else {
+                // Deep in the tree, we aggressively tighten alpha to prune branches
+                if frame.max_score > frame.alpha {
+                    frame.alpha = frame.max_score;
+                }
 
-            if frame.max_score > frame.alpha {
-                frame.alpha = frame.max_score;
-            }
-            // println!("after:");
-            // println!("relative score: {:?}",relative_score);
-            // println!("max score: {:?}",frame.max_score);
-            // println!("alpha: {:?}",frame.alpha);
-            // println!("beta: {:?}",frame.beta);
+                // println!("new alpha: {:?}",frame.alpha);
 
-            // Trigger a cut-off immediately if alpha meets or exceeds beta boundaries
-            if frame.alpha >= frame.beta {
-                return self.finalize_and_backtrack();
+                // Trigger a cut-off immediately deep in the tree if bounds cross
+                if frame.alpha >= frame.beta {
+                    return self.finalize_and_backtrack();
+                }
             }
 
             if frame.move_idx >= frame.legal_moves.len() {
@@ -238,7 +227,7 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
 
             StepResult::Deepen
         } else {
-            StepResult::Done { best_score: relative_score }
+            StepResult::Done { best_score: relative_score, pv: child_pv }
         }
     }
 
@@ -258,12 +247,18 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
             self.tt.store(&self.state, frame.max_score, remaining_depth, bounds);
 
             if self.stack.is_empty() {
-                StepResult::Done { best_score: frame.max_score }
+                StepResult::Done { 
+                    best_score: frame.max_score, 
+                    pv: frame.pv_line 
+                }
             } else {
-                StepResult::Backtrack { score: frame.max_score }
+                StepResult::Backtrack { 
+                    score: frame.max_score, 
+                    pv: frame.pv_line 
+                }
             }
         } else {
-            StepResult::Done { best_score: EvaluationScore::Value(0) }
+            StepResult::Done { best_score: EvaluationScore::Value(0), pv: Vec::new() }
         }
     }
 }

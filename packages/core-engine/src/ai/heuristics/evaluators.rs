@@ -12,7 +12,7 @@ use crate::ai::heuristics::{
 // ============================================================================
 
 #[inline(always)]
-pub fn evaluate_move(m:&Move, allied_pieces: Bitboard, enemy_pieces: Bitboard) -> i32 {
+pub fn evaluate_move(m:&Move, allied_pieces: Bitboard, enemy_pieces: Bitboard, luts: &EngineLUTs) -> i32 {
     let from_sq = m.from_square() as usize;
     let to_sq = m.to_square() as usize;
     
@@ -22,31 +22,22 @@ pub fn evaluate_move(m:&Move, allied_pieces: Bitboard, enemy_pieces: Bitboard) -
     let mut move_score: i32 = 0;
 
     let moore_neighborhood_lut = &EngineLUTs::get_engine_luts().moore_neighborhood_lut;
+    let from_neighborhood = moore_neighborhood_lut[from_sq];
+    let to_neighborhood = moore_neighborhood_lut[to_sq];
+    let from_allied_density = (from_neighborhood & allied_pieces).count_ones() as i32;
+    let to_allied_density = (to_neighborhood & allied_pieces).count_ones() as i32;
+    let to_enemy_density = (to_neighborhood & enemy_pieces).count_ones() as i32;
+    move_score += ( to_allied_density - from_allied_density )* 50;
+    
     if is_capture {
-        // Base bonus for any capture event
+        // Bonus for any capture event
         move_score += 5000;
-        
-
-        // Target Victim Density: Pull the neighborhood mask for the captured square
-        let victim_neighborhood = moore_neighborhood_lut[to_sq];
-        
-        // Count how many pieces surrounding the victim belong to the enemy
-        // High counts indicate capturing a highly "central/dense" piece inside their block
-        let enemy_density = (victim_neighborhood & enemy_pieces).count_ones() as i32;
-        move_score += enemy_density * 100;
-        
-        // Attacker Density: Evaluate the moving piece's initial neighborhood support
-        let attacker_neighborhood = moore_neighborhood_lut[from_sq];
-        let allied_density = (attacker_neighborhood & allied_pieces).count_ones() as i32;
-        move_score -= allied_density * 50;
-    } else {
-        // Quiets: Prioritize stepping into dense, well-supported allied formations
-        let destination_neighborhood = moore_neighborhood_lut[to_sq];
-        let destination_allied_density = (destination_neighborhood & allied_pieces).count_ones() as i32;
-        move_score += destination_allied_density * 20;
+        move_score += to_enemy_density * 100;
     }
 
-    // println!("sorting move: is_capture = {}", is_capture);
+    // centrality bonus
+    move_score += luts.centrality_lut[to_sq] as i32 -luts.centrality_lut[from_sq] as i32 ;
+
     // Invert the score so the highest values sort to the front of the list
     -move_score
 }

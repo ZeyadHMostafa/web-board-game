@@ -70,7 +70,7 @@ impl<'a> IterativeDeepeningController<'a> {
             while !self.ctx.cancelled.load(Ordering::Relaxed) {
                 // Loop internally to flush out consecutive Backtracks immediately 
                 // before printing diagnostic frame telemetry
-                while let StepResult::Backtrack { score } = status {
+                while let StepResult::Backtrack { score, pv } = status {
                     if machine.stack.len() == 1 {
                         let explored_idx = machine.stack[0].move_idx - 1;
                         let target_move = machine.stack[0].legal_moves[explored_idx];
@@ -81,24 +81,31 @@ impl<'a> IterativeDeepeningController<'a> {
                             score: root_perspective_score, // This safely becomes Mating(3)
                         });
                     }
-                    status = machine.handle_backtrack(score);
+                    status = machine.handle_backtrack(score, pv);
                 }
 
-                if let StepResult::Done { .. } = status {
+                if let StepResult::Done { best_score: _, pv } = status {
+                    // Only commit if the search wasn't cancelled mid-way
+                    if !self.ctx.cancelled.load(Ordering::Relaxed) {
+                        let mut progress = self.shared_progress.write().unwrap();
+                        progress.pv = pv; 
+                    }
                     break;
                 }
                 
-                // println!("\n\n");
-                // println!("{:?}",status);
-                // println!("depth: {}", machine.stack.len()-1);
-                // if let Some(frame) = machine.stack.last(){
-                //     println!("move idx:{}", frame.move_idx);
-                //     println!("alpha:{:?}", frame.alpha);
-                //     println!("beta:{:?}", frame.beta);
-                //     println!("legal move count: {}", frame.legal_moves.len());
-                // }
-                // println!("current player: {:?}", machine.state.active_player);
-                // println!("{:?}", machine.state);
+                if false {
+                    println!("\n\n");
+                    println!("{:?}",status);
+                    println!("depth: {}", machine.stack.len()-1);
+                    if let Some(frame) = machine.stack.last(){
+                        println!("move idx:{}", frame.move_idx);
+                        println!("alpha:{:?}", frame.alpha);
+                        println!("beta:{:?}", frame.beta);
+                        println!("legal move count: {}", frame.legal_moves.len());
+                    }
+                    println!("current player: {:?}", machine.state.active_player);
+                    println!("{:?}", machine.state);
+                }
                 status = machine.step();
             }
 

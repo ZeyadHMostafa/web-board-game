@@ -67,6 +67,9 @@ pub struct EngineLUTs {
     pub(crate) regions: RegionalMasks,
     pub(crate) parities: ParityMasks,
 
+    pub centrality_lut: [u8; 64],
+    pub centrality_rings: [u64; 4],
+
     pub topology_idx_lut: [u8; 64],
     pub topology_wall_masks: [u8; 9],
 }
@@ -88,6 +91,9 @@ impl EngineLUTs {
 
             regions: RegionalMasks::new(),
             parities: ParityMasks::new(),
+
+            centrality_lut: generate_centrality_lut(),
+            centrality_rings: CENTRALITY_RINGS,
 
             topology_idx_lut: idx_lut,
 

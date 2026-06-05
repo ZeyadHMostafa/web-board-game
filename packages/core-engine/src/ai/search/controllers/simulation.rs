@@ -34,10 +34,10 @@ impl<'a> SimulationController<'a> {
                 StepResult::Deepen => {
                     status = machine.step();
                 }
-                StepResult::Backtrack { score } => {
-                    status = machine.handle_backtrack(score);
+                StepResult::Backtrack { score, pv } => {
+                    status = machine.handle_backtrack(score, pv);
                 }
-                StepResult::Done { best_score } => {
+                StepResult::Done { best_score , pv: _pv} => {
                     total_score = best_score;
                     break;
                 }
@@ -66,7 +66,7 @@ impl<'a> SimulationController<'a> {
                 StepResult::Deepen => {
                     status = machine.step();
                 }
-                StepResult::Backtrack { score } => {
+                StepResult::Backtrack { score, pv } => {
                     // When backing into the root frame, intercept the score and assign it to the corresponding move
                     if machine.stack.len() == 1 {
                         let explored_idx = machine.stack[0].move_idx - 1;
@@ -76,7 +76,7 @@ impl<'a> SimulationController<'a> {
                             score: invert_score(score), //final invert to set move from out prespective
                         });
                     }
-                    status = machine.handle_backtrack(score);
+                    status = machine.handle_backtrack(score, pv);
                 }
                 StepResult::Done { .. } => {
                     break;
@@ -89,6 +89,7 @@ impl<'a> SimulationController<'a> {
             depth_reached: self.target_depth,
             nodes_explored: 0, // Swapped to 0 instantly due to NoOpTelemetry
             branching_factor: 0.0,
+            pv: Vec::new()
         }
     }
 }

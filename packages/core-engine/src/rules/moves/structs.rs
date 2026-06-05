@@ -1,9 +1,10 @@
+use std::fmt;
 use std::ops::{Deref, DerefMut};
 
 use crate::rules::state::Bitboard;
 
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Move {
     payload: u16,
 }
@@ -15,6 +16,46 @@ pub struct MoveList {
     count: usize,
 }
 
+impl fmt::Debug for Move {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let from = self.from_square();
+        let to = self.to_square();
+        let flags = (self.payload & Self::FLAG_MASK) >> 12;
+
+        // Helper to convert index to "a1" style coordinates
+        let coord = |sq: u8| -> String {
+            let file = (b'a' + (sq % 8)) as char;
+            let rank = (b'1' + (sq / 8)) as char;
+            format!("{}{}", file, rank)
+        };
+
+        f.debug_struct("Move")
+            .field("repr", &format_args!("{} -> {}", coord(from), coord(to)))
+            .field("from", &from)
+            .field("to", &to)
+            .field("flags", &format_args!("{:#06b}", flags))
+            .field("is_capture", &self.is_capture())
+            .field("payload", &format_args!("{:#018b}", self.payload))
+            .finish()
+    }
+}
+
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let from = self.from_square();
+        let to = self.to_square();
+        let flags = (self.payload >> 12) as u8;
+
+        // Convert index 0..63 to algebraic (a1, b2, etc.)
+        let f_file = (b'a' + (from % 8)) as char;
+        let f_rank = (b'1' + (from / 8)) as char;
+        let t_file = (b'a' + (to % 8)) as char;
+        let t_rank = (b'1' + (to / 8)) as char;
+
+        // format: "d2->d4 [f:1]"
+        write!(f, "{}{}->{}{} [f:{}]", f_file, f_rank, t_file, t_rank, flags)
+    }
+}
 
 impl Move {
     const FROM_MASK: u16 = 0x003F; // Lowest 6 bits

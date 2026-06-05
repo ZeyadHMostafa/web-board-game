@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use crate::{ai::{PositionEvaluator, ScoredMove}, luts::EngineLUTs};
+use crate::{ai::{PositionEvaluator, ScoredMove}, luts::EngineLUTs, rules::moves::Move};
 
 pub mod controllers;
 pub mod algorithms;
@@ -19,6 +19,7 @@ pub struct SearchProgress {
     pub depth_reached: usize,
     pub nodes_explored: usize,
     pub branching_factor: f64,
+    pub pv: Vec<Move>,
 }
 
 pub trait SearchTelemetry: Send + Sync {

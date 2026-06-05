@@ -111,6 +111,7 @@ fn trigger_ai_move(app: &mut App) {
         depth_reached: 0,
         nodes_explored: 0,
         branching_factor: 0.0,
+        pv: Vec::new(),
     }));
 
     // Clone inputs to safely transfer ownership to the background worker thread
@@ -134,7 +135,7 @@ fn trigger_ai_move(app: &mut App) {
 
     // Spawn a companion supervisor timer thread to handle time budgeting boundaries
     let timer_cancelled = cancelled.clone();
-    let time_budget = Duration::from_millis(1000);
+    let time_budget = Duration::from_millis(500);
     
     std::thread::spawn(move || {
         std::thread::sleep(time_budget);

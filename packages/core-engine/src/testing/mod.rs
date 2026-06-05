@@ -38,6 +38,7 @@ pub fn run_position_diagnostic(
         depth_reached: 0,
         nodes_explored: 0,
         branching_factor: 0.0,
+        pv: Vec::new()
     }));
 
     let ctx = SearchContext {
@@ -103,10 +104,20 @@ fn print_diagnostic_report(metrics: &DiagnosticMetrics, progress: &SearchProgres
 
     for candidate in sorted_candidates {
         println!(
-            "  Move: {:?} | Evaluation Score: {:?}",
+            "  Move: {} | Evaluation Score: {:?}",
             candidate.current_move, candidate.score
         );
     }
+    
+    // --- NEW: PRINT THE REAL IN-MEMORY PV TRACE ---
+    println!("--------------------------------------------------");
+    println!("--- Principal Variation Line ---");
+    if progress.pv.is_empty() {
+        println!("  No variation tracked (or depth 0/leaf node reached).");
+    } else {
+        for (ply, mv) in progress.pv.iter().enumerate() {
+            println!("  Ply {}: {}", ply + 1, mv);
+        }
+    }
     println!("==================================================\n");
 }
-
