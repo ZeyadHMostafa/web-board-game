@@ -1,6 +1,7 @@
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::AtomicBool;
 use core_engine::ai::heuristics::FeatureMatrix;
+use core_engine::ai::models::simple_heuristic::SimpleHeuristicPositionEvaluator;
 use core_engine::ai::models::static_dot::StaticDotProductEvaluatorWeights;
 use core_engine::luts::LUTS;
 use core_engine::{
@@ -93,7 +94,12 @@ impl App {
 
         // Instantiate structural components using the resolved weights
         let luts = &LUTS;
-        let evaluator = Arc::new(StaticDotProductEvaluator::new(final_weights));
+
+        // switch to this if you want to test static dot
+        // let evaluator = Arc::new(StaticDotProductEvaluator::new(final_weights));
+        
+        // simple
+        let evaluator = Arc::new(SimpleHeuristicPositionEvaluator::new());
         
         // Pass the structural lookups and static evaluator layers to match the updated parameters block
         let search_engine = Arc::new(NegamaxPlayAgent::new( 2, 12));
