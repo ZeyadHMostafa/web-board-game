@@ -61,7 +61,7 @@ impl TranspositionTable {
 
     /// Looks up a state. Returns the entry only if it matches our exact board state.
     #[inline(always)]
-    pub fn lookup(&mut self, state: &GameState) -> Option<TranspositionEntry> {
+    pub fn lookup(& self, state: &GameState) -> Option<TranspositionEntry> {
         let (key, index) = self.get_table_index(state);
         
         if let Some(entry) = self.table[index] {
