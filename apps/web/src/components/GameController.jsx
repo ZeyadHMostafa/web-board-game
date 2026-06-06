@@ -2,11 +2,16 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useGameState } from '../hooks/useGameState';
 import { useHotkeys } from '../hooks/useHotkeys';
 import { BoardMatrix } from '../utils/boardMatrix';
+import { useWorkerOrchestrator } from '../hooks/useWorkerOrchestrator';
 import BoardContainer from './BoardContainer/BoardContainer';
 import HUD from './HUD/HUD';
 import DragOverlay from './DragOverlay';
 
 export default function GameController() {
+  const gameState = useGameState();
+
+  useWorkerOrchestrator(gameState);
+
   const {
     board,
     currentPlayer,
@@ -28,7 +33,7 @@ export default function GameController() {
     togglePlayerAuto,
     stepBackward,
     stepForward
-  } = useGameState();
+  } = gameState;
 
   const [draggedPiece, setDraggedPiece] = useState(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
