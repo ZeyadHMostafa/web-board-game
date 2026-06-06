@@ -1,12 +1,12 @@
 use std::sync::Arc;
-use crate::{ai::{models::static_dot::{DEFAULT_EVALUATOR_WEIGHTS, TrainableDotProductEvaluator}, search::algorithms::negamax::NegamaxSimulationAgent}, luts::EngineLUTs, rules::state::{GameState, Player}};
+use crate::{ai::{models::static_dot::{DEFAULT_EVALUATOR_WEIGHTS, TrainableDotProductEvaluator}, search::algorithms::negamax::NegamaxSimulationAgent}, luts::{EngineLUTs, LUTS}, rules::state::{GameState, Player}};
 
 
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
     use crate::rules::state::{GameState, Player};
-    use crate::luts::EngineLUTs;
+    use crate::luts::LUTS;
     use crate::ai::models::static_dot::{TrainableDotProductEvaluator, DEFAULT_EVALUATOR_WEIGHTS};
     use crate::ai::PositionEvaluator;
     use crate::ai::search::algorithms::negamax::NegamaxSimulationAgent;
@@ -30,10 +30,10 @@ mod tests {
 
     #[test]
     fn run_comprehensive_evaluator_diagnostics() {
-        let luts = EngineLUTs::get_engine_luts();
+        let luts = &LUTS;
         let flat_weights = get_flattened_default_weights();
         
-        let trainable_evaluator = TrainableDotProductEvaluator::new(luts, flat_weights);
+        let trainable_evaluator = TrainableDotProductEvaluator::new(flat_weights);
 
         println!("\n==================================================");
         println!("STARTING MODEL PERSPECTIVE SYMMETRY DIAGNOSTIC");
@@ -60,8 +60,8 @@ mod tests {
         // TEST CASE 2: Feature Matrix Permutation Checks
         // --------------------------------------------------------------------
         println!("\nPhase 2: Verifying Simulation Feature Maps...");
-        let features_p1 = NegamaxSimulationAgent::extract_features(&state_p1_turn, luts);
-        let features_p2 = NegamaxSimulationAgent::extract_features(&state_p2_turn, luts);
+        let features_p1 = NegamaxSimulationAgent::extract_features(&state_p1_turn);
+        let features_p2 = NegamaxSimulationAgent::extract_features(&state_p2_turn);
 
         // Verify length match
         assert_eq!(features_p1.len(), 108, "Features vector length must be 108");
@@ -114,7 +114,7 @@ mod tests {
 
 #[test]
 fn test_agent_target_score_sanity() {
-    let luts = EngineLUTs::get_engine_luts();
+    let luts = &LUTS;
     
     // Construct a flat weight array from DEFAULT_EVALUATOR_WEIGHTS
     let mut flat = Vec::with_capacity(108);
@@ -127,11 +127,11 @@ fn test_agent_target_score_sanity() {
             }
         }
     }
-    let evaluator = Arc::new(TrainableDotProductEvaluator::new(luts, Arc::new(flat)));
+    let evaluator = Arc::new(TrainableDotProductEvaluator::new(Arc::new(flat)));
     
     // Instantiate our simulation agent (epsilon = 0.0 to focus on competitive targets)
     let search_depth = 4;
-    let agent = NegamaxSimulationAgent::new(luts, evaluator, search_depth, 0.0);
+    let agent = NegamaxSimulationAgent::new(evaluator, search_depth, 0.0);
 
     println!("\n==================================================");
     println!("RUNNING SIMULATION AGENT TARGET SCORE SANITY");

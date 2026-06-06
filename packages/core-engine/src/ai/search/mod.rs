@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use crate::{ai::{PositionEvaluator, ScoredMove}, luts::EngineLUTs, rules::moves::Move};
+use crate::{ai::{PositionEvaluator, ScoredMove}, rules::moves::Move};
 
 pub mod controllers;
 pub mod algorithms;
@@ -9,7 +9,6 @@ pub(super) mod utils;
 
 pub struct SearchContext<'a> {
     pub evaluator: &'a dyn PositionEvaluator,
-    pub luts: &'static EngineLUTs,
     pub cancelled: &'a AtomicBool,
 }
 

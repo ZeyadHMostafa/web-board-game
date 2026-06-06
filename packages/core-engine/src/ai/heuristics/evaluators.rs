@@ -1,9 +1,10 @@
+use crate::ai::heuristics::FeatureMatrix;
+use crate::luts::LUTS;
 use crate::rules::state::Bitboard;
-use crate::luts::EngineLUTs;
 use crate::rules::moves::Move;
 use crate::rules::moves::generate_piece_moves;
 use crate::ai::heuristics::{
-    RegionType, ParityType, HeuristicMatrix, IntermediateBatch,
+    RegionType, ParityType, IntermediateBatch,
     StructuralMoveMap, VerticalDensityMap
 };
 
@@ -12,7 +13,7 @@ use crate::ai::heuristics::{
 // ============================================================================
 
 #[inline(always)]
-pub fn evaluate_move(m:&Move, allied_pieces: Bitboard, enemy_pieces: Bitboard, luts: &EngineLUTs) -> i32 {
+pub fn evaluate_move(m:&Move, allied_pieces: Bitboard, enemy_pieces: Bitboard) -> i32 {
     let from_sq = m.from_square() as usize;
     let to_sq = m.to_square() as usize;
     
@@ -21,7 +22,7 @@ pub fn evaluate_move(m:&Move, allied_pieces: Bitboard, enemy_pieces: Bitboard, l
 
     let mut move_score: i32 = 0;
 
-    let moore_neighborhood_lut = &EngineLUTs::get_engine_luts().moore_neighborhood_lut;
+    let moore_neighborhood_lut = &LUTS.moore_neighborhood_lut;
     let from_neighborhood = moore_neighborhood_lut[from_sq];
     let to_neighborhood = moore_neighborhood_lut[to_sq];
     let from_allied_density = (from_neighborhood & allied_pieces).count_ones() as i32;
@@ -36,7 +37,7 @@ pub fn evaluate_move(m:&Move, allied_pieces: Bitboard, enemy_pieces: Bitboard, l
     }
 
     // centrality bonus
-    move_score += luts.centrality_lut[to_sq] as i32 -luts.centrality_lut[from_sq] as i32 ;
+    move_score += LUTS.centrality_lut[to_sq] as i32 -LUTS.centrality_lut[from_sq] as i32 ;
 
     // Invert the score so the highest values sort to the front of the list
     -move_score
@@ -47,12 +48,11 @@ pub fn evaluate_move(m:&Move, allied_pieces: Bitboard, enemy_pieces: Bitboard, l
 pub fn evaluate_position(
     allied_pieces: Bitboard,
     enemy_pieces: Bitboard,
-    luts: &EngineLUTs,
-) -> HeuristicMatrix {
-    let ally_batch = generate_intermediate_assets(allied_pieces, enemy_pieces, luts);
-    let enemy_batch = generate_intermediate_assets(enemy_pieces, allied_pieces, luts);
+) -> FeatureMatrix {
+    let ally_batch = generate_intermediate_assets(allied_pieces, enemy_pieces);
+    let enemy_batch = generate_intermediate_assets(enemy_pieces, allied_pieces);
 
-    reduce_assets_to_matrix(&ally_batch, &enemy_batch, allied_pieces, enemy_pieces, luts)
+    reduce_assets_to_matrix(&ally_batch, &enemy_batch, allied_pieces, enemy_pieces)
 }
 
 /// Iterates through the active side's pieces to construct intermediate maps.
@@ -60,7 +60,6 @@ pub fn evaluate_position(
 fn generate_intermediate_assets(
     mut movers: Bitboard,
     targets: Bitboard,
-    luts: &EngineLUTs,
 ) -> IntermediateBatch {
     let mut union_map = StructuralMoveMap::default();
     let mut density = VerticalDensityMap::default();
@@ -69,7 +68,7 @@ fn generate_intermediate_assets(
     while !movers.is_empty() {
         let piece_idx = movers.pop_lsb();
 
-        let piece_moves = generate_piece_moves::<true>(piece_idx, base_movers, targets, luts);
+        let piece_moves = generate_piece_moves::<true>(piece_idx, base_movers, targets);
 
         // Accumulate Global Union using custom operator traits
         union_map.collective_moves |= piece_moves;
@@ -96,9 +95,8 @@ fn reduce_assets_to_matrix(
     enemy_batch: &IntermediateBatch,
     allied_pieces: Bitboard,
     enemy_pieces: Bitboard,
-    luts: &EngineLUTs,
-) -> HeuristicMatrix {
-    let mut matrix = HeuristicMatrix::new();
+) -> FeatureMatrix {
+    let mut matrix = FeatureMatrix::new();
 
     // 1. Extract raw bitwise layers for both players
     let a0 = ally_batch.density.layer_0;
@@ -155,11 +153,11 @@ fn reduce_assets_to_matrix(
 
     // 5. Unrolled Parallel Masking Pass over Geographic and Structural Dimensions
     for &region in &regions {
-        let r_mask = luts.regions.get(region);
+        let r_mask = LUTS.regions.get(region);
         let r_idx = region as usize;
 
         for &parity in &parities {
-            let p_mask = luts.parities.get(parity);
+            let p_mask = LUTS.parities.get(parity);
             let p_idx = parity as usize;
 
             let spatial_filter = r_mask & p_mask;
@@ -171,7 +169,7 @@ fn reduce_assets_to_matrix(
                     let combined_filter = tile_filter & sovereignty_masks[s_idx];
                     
                     matrix.values[t_idx][s_idx][r_idx][p_idx] = 
-                        combined_filter.count_ones() as i16;
+                        combined_filter.count_ones() as u8;
                 }
             }
         }

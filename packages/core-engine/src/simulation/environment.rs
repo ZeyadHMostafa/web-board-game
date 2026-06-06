@@ -28,7 +28,7 @@ impl SimulationEnvironment {
         let mut p2_history = [Bitboard::EMPTY; 4];
         let mut game_is_drawn = false;
 
-        while !current_state.is_lost(self.luts) && move_counter < self.max_moves {
+        while !current_state.is_lost() && move_counter < self.max_moves {
             let current_pieces = current_state.get_player_pieces(current_state.active_player);
             let history_ref = match current_state.active_player {
                 Player::P1 => &p1_history,
@@ -78,10 +78,10 @@ impl SimulationEnvironment {
             // there are no true draws in the game
             // this is just used to stop games where
             // it converged to a stand-off
-        } else if state.is_lost(self.luts) {
+        } else if state.is_lost() {
             println!("player lost");
             samples.push(TrainingSample {
-                features: NegamaxSimulationAgent::extract_features(state, self.luts),
+                features: NegamaxSimulationAgent::extract_features(state),
                 target_score: -1000.0,
             });
         }

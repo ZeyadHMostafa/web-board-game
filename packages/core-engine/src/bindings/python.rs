@@ -24,7 +24,7 @@ pub struct PyTrainingEnvironment {
 impl PyTrainingEnvironment {
     #[new]
     fn new() -> Self {
-        let luts_ptr = luts::EngineLUTs::get_engine_luts(); 
+        let luts_ptr = &luts::LUTS; 
         Self {
             luts: luts_ptr,
             current_evaluator: None,
@@ -47,7 +47,6 @@ impl PyTrainingEnvironment {
         }
 
         let evaluator = Arc::new(TrainableDotProductEvaluator::new(
-            self.luts,
             Arc::new(int_weights),
         ));
 

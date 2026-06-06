@@ -1,4 +1,4 @@
-use crate::rules::state::Bitboard;
+use crate::{luts::LUTS, rules::state::Bitboard};
 use crate::luts::EngineLUTs;
 use super::utils::{
     align_relative_mask, compute_ray_moves, generate_7bit_key, get_orthogonal_mask,
@@ -12,20 +12,17 @@ pub fn generate_piece_moves<const IS_CONTROL_EVAL: bool>(
     piece_idx: u8,
     allied_pieces: Bitboard,
     enemy_pieces: Bitboard,
-    luts: &EngineLUTs,
 ) -> Bitboard {
     let ortho_moves = generate_orthogonal_moves::<IS_CONTROL_EVAL>(
         piece_idx,
         allied_pieces,
-        enemy_pieces,
-        luts,
+        enemy_pieces
     );
     
     let diag_moves = generate_diagonal_moves::<IS_CONTROL_EVAL>(
         piece_idx,
         allied_pieces,
-        enemy_pieces,
-        luts,
+        enemy_pieces
     );
 
     ortho_moves | diag_moves
@@ -41,10 +38,9 @@ pub fn generate_orthogonal_moves<const IS_CONTROL_EVAL: bool>(
     piece_idx: u8,
     allied_pieces: Bitboard,
     enemy_pieces: Bitboard,
-    luts: &EngineLUTs,
 ) -> Bitboard {
     // 1. Gather the raw orthogonal adjacency template mask for this square
-    let orthogonal_mask = get_orthogonal_mask(piece_idx, luts);
+    let orthogonal_mask = get_orthogonal_mask(piece_idx);
 
     // 2. Intersect with allied pieces; your allies inherently function as the valid anchors (pivots)
     let mut pivot_bits = orthogonal_mask & allied_pieces;
@@ -58,8 +54,7 @@ pub fn generate_orthogonal_moves<const IS_CONTROL_EVAL: bool>(
             piece_idx,
             pivot_idx,
             allied_pieces,
-            enemy_pieces,
-            luts,
+            enemy_pieces
         );
         destination_moves |= pivot_moves;
     }
@@ -81,7 +76,6 @@ pub fn generate_moves_for_pivot<const IS_CONTROL_EVAL: bool>(
     pivot_idx: u8,
     allied_pieces: Bitboard,
     enemy_pieces: Bitboard,
-    luts: &EngineLUTs,
 ) -> Bitboard {
     // Merge positions into a combined grid to manage board obstacles
     let mut total_occupancy = allied_pieces | enemy_pieces;
@@ -90,22 +84,22 @@ pub fn generate_moves_for_pivot<const IS_CONTROL_EVAL: bool>(
     // If evaluating control/influence vectors, we ignore any allied pieces that are orthogonal 
     // to our active pivot, effectively allowing our moving piece to "slide through" them.
     if IS_CONTROL_EVAL {
-        let adjacent_to_pivot = get_orthogonal_mask(pivot_idx, luts);
+        let adjacent_to_pivot = get_orthogonal_mask(pivot_idx);
         total_occupancy &= !(adjacent_to_pivot & allied_pieces);
     }
 
     // Step 2: Extract our dense 7-bit neighborhood rotation key
-    let (key, initial_offset_type) = generate_7bit_key(piece_idx, pivot_idx, total_occupancy, luts);
+    let (key, initial_offset_type) = generate_7bit_key(piece_idx, pivot_idx, total_occupancy);
 
     // Step 3: Fast O(1) rotation status lookup
-    let relative_arrival_mask = luts.neighborhood_rotation_lut[key as usize];
+    let relative_arrival_mask = LUTS.neighborhood_rotation_lut[key as usize];
 
     // Step 4: Re-align directional indices and translate the spatial move-mask template over the pivot
     let absolute_cardinal_mask = align_relative_mask(relative_arrival_mask, initial_offset_type);
-    let local_move_mask = luts.cardinal_offset_lut[absolute_cardinal_mask as usize];
+    let local_move_mask = LUTS.cardinal_offset_lut[absolute_cardinal_mask as usize];
     
     // Pass raw interior value into helper for the 128-bit shift trick
-    shift_and_clip_mask(local_move_mask.0, pivot_idx, luts)
+    shift_and_clip_mask(local_move_mask.0, pivot_idx)
 }
 
 // ============================================================================
@@ -116,10 +110,9 @@ pub fn generate_moves_for_pivot<const IS_CONTROL_EVAL: bool>(
 pub fn generate_diagonal_moves<const IS_CONTROL_EVAL: bool>(
     piece_idx: u8,
     allied_pieces: Bitboard,
-    _enemy_pieces: Bitboard, // Unused here since enemies don't block the hop path transit
-    luts: &EngineLUTs,
+    _enemy_pieces: Bitboard,
 ) -> Bitboard {
-    let rays = luts.diagonal_ray_lut[piece_idx as usize];
+    let rays = LUTS.diagonal_ray_lut[piece_idx as usize];
     
     // Per your deduction: diagonal hops pass clean over empty or enemy-held squares.
     // Only your own allied pieces serve as the actual anchors you leap over.

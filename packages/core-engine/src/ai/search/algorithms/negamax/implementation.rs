@@ -42,12 +42,12 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
         let alpha = EvaluationScore::Mated(0);
         let beta = EvaluationScore::Mating(0);
         
-        let mut legal_moves = self.state.generate_legal_moves(self.ctx.luts);
+        let mut legal_moves = self.state.generate_legal_moves();
         if !legal_moves.is_empty() && self.max_depth > 1 {
             let allied_pieces = self.state.get_player_pieces(self.state.active_player);
             let enemy_pieces = self.state.get_player_pieces(self.state.active_player.opponent());
             legal_moves.sort_unstable_by_key(|m| {
-                evaluators::evaluate_move(m, allied_pieces, enemy_pieces, self.ctx.luts)
+                evaluators::evaluate_move(m, allied_pieces, enemy_pieces)
             });
         }
 
@@ -143,13 +143,13 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
             let next_alpha = invert_score(frame.beta);
             let next_beta = invert_score(frame.alpha);
 
-            let mut next_legal_moves = self.state.generate_legal_moves(self.ctx.luts);
+            let mut next_legal_moves = self.state.generate_legal_moves();
             let next_remaining_depth = remaining_depth - 1;
             if !next_legal_moves.is_empty() && next_remaining_depth > 1 {
                 let allied_pieces = self.state.get_player_pieces(self.state.active_player);
                 let enemy_pieces = self.state.get_player_pieces(self.state.active_player.opponent());
                 next_legal_moves.sort_unstable_by_key(|m| {
-                    evaluators::evaluate_move(m, allied_pieces, enemy_pieces, self.ctx.luts)
+                    evaluators::evaluate_move(m, allied_pieces, enemy_pieces)
                 });
             }
 

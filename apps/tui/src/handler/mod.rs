@@ -87,7 +87,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) {
     }
 
     // Trigger AI Execution immediately if it's an AI's turn and the game isn't over
-    if app.mode == GameMode::Strict && app.is_active_player_ai() && !app.game_state.is_lost(EngineLUTs::get_engine_luts()) {
+    if app.mode == GameMode::Strict && app.is_active_player_ai() && !app.game_state.is_lost() {
         trigger_ai_move(app);
     }
 }
@@ -102,7 +102,6 @@ fn trigger_ai_move(app: &mut App) {
     app.is_ai_searching = true;
 
     // Configure structural parameters and context tokens
-    let luts = core_engine::luts::EngineLUTs::get_engine_luts();
     let cancelled = Arc::new(AtomicBool::new(false));
     let nodes_explored = std::sync::atomic::AtomicUsize::new(0);
 
@@ -126,7 +125,6 @@ fn trigger_ai_move(app: &mut App) {
         let ctx = SearchContext {
             cancelled: &worker_cancelled,
             evaluator: evaluator.as_ref(),
-            luts,
         };
 
         // Execute the synchronous iterative deepen operation inside the worker space

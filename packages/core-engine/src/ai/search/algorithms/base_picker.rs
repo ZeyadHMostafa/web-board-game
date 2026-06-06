@@ -28,7 +28,7 @@ impl Agent for BasePickerSearch {
         _ctx: &SearchContext,
         shared_progress: Arc<RwLock<SearchProgress>>,
     ) {
-        let legal_moves = state.generate_legal_moves(self.luts);
+        let legal_moves = state.generate_legal_moves();
         let mut layer_candidates = Vec::with_capacity(legal_moves.len());
 
         for current_move in legal_moves {

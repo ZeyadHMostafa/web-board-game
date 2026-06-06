@@ -1,5 +1,4 @@
 use crate::rules::state::Bitboard;
-use crate::luts::EngineLUTs;
 use crate::rules::moves::{Move, MoveList, generate_piece_moves};
 use std::fmt::Formatter;
 use std::fmt::Debug;
@@ -89,11 +88,8 @@ impl GameState {
 
     /// Checks if the active player has completely run out of legal moves.
     /// Returns true if they have lost the game.
-    pub fn is_lost(&self, luts: &EngineLUTs) -> bool {
-        let (allied_pieces, enemy_pieces) = match self.active_player {
-            Player::P1 => (self.p1_pieces, self.p2_pieces),
-            Player::P2 => (self.p2_pieces, self.p1_pieces),
-        };
+    pub fn is_lost(&self) -> bool {
+        let (allied_pieces, _enemy_pieces) = self.get_player_pieces_relative();
 
         // If the player has no physical pieces remaining, they have automatically lost.
         if allied_pieces.is_empty() {
@@ -104,10 +100,10 @@ impl GameState {
         let mut pieces_to_scan = allied_pieces;
 
         while !pieces_to_scan.is_empty() {
-            let piece_idx = pieces_to_scan.pop_lsb();
+            let _piece_idx = pieces_to_scan.pop_lsb();
 
             // Compute standard legal moves (IS_CONTROL_EVAL = false)
-            let legal_moves = self.generate_legal_moves(luts);
+            let legal_moves = self.generate_legal_moves();
 
             // If we find even a single valid destination square across any piece,
             // the active player is still safely in the game.
@@ -122,7 +118,7 @@ impl GameState {
 
     /// Step 1: Implements GameState.generate_legal_moves()
     /// Sweeps the active player's pieces and converts absolute mobility targets into concrete Move variants.
-    pub fn generate_legal_moves(&self, luts: &EngineLUTs) -> MoveList {
+    pub fn generate_legal_moves(&self) -> MoveList {
         let mut move_list = MoveList::new();
 
         let (allied_pieces, enemy_pieces) = match self.active_player {
@@ -137,8 +133,7 @@ impl GameState {
             let move_mask = generate_piece_moves::<false>(
                 piece_idx,
                 allied_pieces,
-                enemy_pieces,
-                luts,
+                enemy_pieces
             );
 
             // Pass reference to the stack-allocated list for zero-allocation collection

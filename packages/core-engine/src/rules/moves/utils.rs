@@ -1,5 +1,5 @@
 use crate::rules::state::Bitboard;
-use crate::luts::EngineLUTs;
+use crate::luts::LUTS;
 
 // ============================================================================
 // HELPERS
@@ -10,22 +10,22 @@ use crate::luts::EngineLUTs;
 /// Left deliberately unintersected by any specific board state so outer callers 
 /// can selectively mask it against allies, pivots, or custom evaluation shapes.
 #[inline(always)]
-pub(super) fn get_orthogonal_mask(piece_idx: u8, luts: &EngineLUTs) -> Bitboard {
+pub(super) fn get_orthogonal_mask(piece_idx: u8) -> Bitboard {
     let piece_mask = 1u64 << piece_idx;
     
     // Shift single piece bit globally in all 4 cardinal directions.
     // Invalid wrapping artifacts across files are cleanly vanished with file masks.
     let adjacent = ((piece_mask >> 8)                    ) | // North (-8 index offset)
                         ((piece_mask << 8)                    ) | // South (+8 index offset)
-                        ((piece_mask << 1) & luts.not_a_file.0) | // East  (+1 index offset)
-                        ((piece_mask >> 1) & luts.not_h_file.0);  // West  (-1 index offset)
+                        ((piece_mask << 1) & LUTS.not_a_file.0) | // East  (+1 index offset)
+                        ((piece_mask >> 1) & LUTS.not_h_file.0);  // West  (-1 index offset)
 
     Bitboard::new(adjacent)
 }
 
-pub(super) fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboard, luts: &EngineLUTs) -> (u8, u8) {
+pub(super) fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboard) -> (u8, u8) {
     let shift_amt = ((9 + 64) - (pivot_idx as i8)) as u8 & 63 ;
-    let topo_idx = luts.topology_idx_lut[pivot_idx as usize];
+    let topo_idx = LUTS.topology_idx_lut[pivot_idx as usize];
 
     // shift everything to position 9 (contains bleed)
     let shifted_occupancy = occupancy.0.rotate_left(shift_amt as u32);
@@ -50,7 +50,7 @@ pub(super) fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboar
 
     let mut packed_neighborhood = tl | l | bl | b | br | r | tr | t;
 
-    let wall_mask = luts.topology_wall_masks[topo_idx as usize];
+    let wall_mask = LUTS.topology_wall_masks[topo_idx as usize];
     packed_neighborhood |= wall_mask;
 
 
@@ -69,7 +69,7 @@ pub(super) fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboar
 }
 
 #[inline(always)]
-pub(super) fn shift_and_clip_mask(local_mask: u64, pivot_idx: u8, luts: &EngineLUTs) -> Bitboard {
+pub(super) fn shift_and_clip_mask(local_mask: u64, pivot_idx: u8) -> Bitboard {
     const LOCAL_ORIGIN_IDX: i32 = 28;
     
     // --- 1. BRANCHLESS SPATIAL TRANSLATION ---
@@ -95,8 +95,8 @@ pub(super) fn shift_and_clip_mask(local_mask: u64, pivot_idx: u8, luts: &EngineL
 
     // Apply the correction masks using bitwise selection:
     // If on the A-file, clear out the h-file bits. Otherwise, leave abs_mask completely untouched.
-    abs_mask &= !(is_a_file_mask & !luts.not_h_file.0);
-    abs_mask &= !(is_h_file_mask & !luts.not_a_file.0);
+    abs_mask &= !(is_a_file_mask & !LUTS.not_h_file.0);
+    abs_mask &= !(is_h_file_mask & !LUTS.not_a_file.0);
 
     Bitboard::new(abs_mask)
 }

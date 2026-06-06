@@ -14,7 +14,7 @@ pub fn handle_strict_click(idx: u8, app: &mut App) {
     match app.selection {
         SelectionState::None => {
             if allied_pieces.has_bit(idx) {
-                let valid_moves = generate_piece_moves::<false>(idx, allied_pieces, enemy_pieces, EngineLUTs::get_engine_luts());
+                let valid_moves = generate_piece_moves::<false>(idx, allied_pieces, enemy_pieces);
                 if valid_moves.is_empty() {
                     app.log("Selected target possesses zero outbound mobility options.");
                 } else {
@@ -34,7 +34,7 @@ pub fn handle_strict_click(idx: u8, app: &mut App) {
 
             // Allow quick target reassignment if another allied piece is clicked instead
             if allied_pieces.has_bit(idx) {
-                let new_moves = generate_piece_moves::<false>(idx, allied_pieces, enemy_pieces, EngineLUTs::get_engine_luts());
+                let new_moves = generate_piece_moves::<false>(idx, allied_pieces, enemy_pieces);
                 app.selection = SelectionState::PieceSelected { index: idx, valid_moves: new_moves };
                 app.log("Active piece selection reassigned.");
                 return;
@@ -45,7 +45,7 @@ pub fn handle_strict_click(idx: u8, app: &mut App) {
                 app.game_state.make_move(verified_move);
                 app.selection = SelectionState::None;
 
-                if app.game_state.is_lost(EngineLUTs::get_engine_luts()) {
+                if app.game_state.is_lost() {
                     app.log("Terminal node state detected. Game Over.");
                 } else {
                     app.log("Movement validated. Perspective turn swapped.");

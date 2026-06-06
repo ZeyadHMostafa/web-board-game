@@ -75,7 +75,7 @@ pub fn render(f: &mut Frame<'_>, area: Rect, app: &App) {
     text.push(Line::from(""));
 
     // 6. Match Termination Banner Display
-    if app.game_state.is_lost(EngineLUTs::get_engine_luts()) {
+    if app.game_state.is_lost() {
         let victor = match app.game_state.active_player {
             Player::P1 => "PLAYER 2 (MAGENTA) TRIUMPHANT",
             Player::P2 => "PLAYER 1 (CYAN) TRIUMPHANT",

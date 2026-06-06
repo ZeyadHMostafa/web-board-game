@@ -18,7 +18,7 @@ pub fn run_self_play_batch(
     const EXPLORATION_EPSILON: f32 = 0.15;
 
     let environment = SimulationEnvironment::new(luts, MAX_MOVES);
-    let agent = NegamaxSimulationAgent::new(luts, evaluator, search_depth, EXPLORATION_EPSILON);
+    let agent = NegamaxSimulationAgent::new(evaluator, search_depth, EXPLORATION_EPSILON);
 
     let samples: Vec<TrainingSample> = (0..num_games)
         .into_par_iter()

@@ -10,7 +10,6 @@ pub(crate) struct DiagonalRays {
     pub sw: Bitboard,
 }
 
-
 // ============================================================================
 // SPATIAL MASKING CONTEXT
 // ============================================================================
@@ -22,12 +21,9 @@ pub(crate) struct RegionalMasks {
 }
 
 impl RegionalMasks {
+    /// Generates pre-computed masks representing fixed geometric partitions of the board.
+    /// The layout differentiates corners, outer edge lines, and inner core zones.
     pub const fn new() -> Self {
-        // C E E C
-        // E O O E
-        // E O O E
-        // C E E C
-        // O = Center, C = Corner, E = Edge
         Self {
             corners: Bitboard(0xC3C300000000C3C3),
             edges:   Bitboard(0x3C3CC3C3C3C33C3C), 
@@ -42,6 +38,8 @@ pub(crate) struct ParityMasks {
 }
 
 impl ParityMasks {
+    /// Generates checkerboard parity patterns. These masks are used to isolate
+    /// alternating diagonal squares for tracking field colors and board parity.
     pub const fn new() -> Self {
         Self {
             even: Bitboard(0x55AA55AA55AA55AA),
@@ -49,7 +47,6 @@ impl ParityMasks {
         }
     }
 }
-
 
 // ============================================================================
 // ENGINE LOOK-UP TABLES (LUTs) IMPLEMENTATION
@@ -74,13 +71,9 @@ pub struct EngineLUTs {
     pub topology_wall_masks: [u8; 9],
 }
 
-use std::sync::OnceLock;
-
 impl EngineLUTs {
     /// Instantiates the static precalculated lookup architecture.
-    /// Can be executed within a `const` context or once at startup.
     const fn new() -> Self {
-        let idx_lut = generate_topology_maps();
         Self {
             neighborhood_rotation_lut: generate_rotation_evaluator(),
             cardinal_offset_lut: generate_relative_move_masks(),
@@ -95,10 +88,11 @@ impl EngineLUTs {
             centrality_lut: generate_centrality_lut(),
             centrality_rings: CENTRALITY_RINGS,
 
-            topology_idx_lut: idx_lut,
+            topology_idx_lut: generate_topology_maps(),
 
-                // TL L  BL B  BR R  TR T
-                // 7  6  5  4  3  2  1  0
+            // Bit indices correspond to direction vectors:
+            // TL  L BL  B BR  R TR  T
+            //  7  6  5  4  3  2  1  0
             topology_wall_masks: [
                 0b00000000, // 0: Center (No walls)
                 0b00111000, // 1: Bottom Edge (S, SE, SW are walls)
@@ -112,10 +106,8 @@ impl EngineLUTs {
             ],
         }
     }
-
-    pub fn get_engine_luts() -> &'static EngineLUTs {
-        static LUTS: OnceLock<EngineLUTs> = OnceLock::new();
-        LUTS.get_or_init(|| EngineLUTs::new())
-    }
-
 }
+
+/// Global compile-time computed lookup tables.
+/// Provides a zero-cost abstraction for accessing precalculated spatial assets.
+pub static LUTS: EngineLUTs = EngineLUTs::new();

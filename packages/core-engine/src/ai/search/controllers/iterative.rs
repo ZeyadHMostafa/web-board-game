@@ -33,7 +33,7 @@ impl<'a> IterativeDeepeningController<'a> {
         };
 
         // Pre-populate root canvas with fallback defaults
-        let initial_moves = true_state.generate_legal_moves(self.ctx.luts);
+        let initial_moves = true_state.generate_legal_moves();
         {
             let mut progress = self.shared_progress.write().unwrap();
             progress.candidates = initial_moves.into_iter().map(|m| ScoredMove {

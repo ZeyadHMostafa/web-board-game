@@ -8,7 +8,7 @@ use crate::ai::search::{SearchContext, SearchProgress};
 use crate::ai::models::static_dot::{StaticDotProductEvaluator, DEFAULT_EVALUATOR_WEIGHTS};
 use crate::rules::moves::Move;
 use crate::rules::state::GameState;
-use crate::luts::EngineLUTs;
+use crate::luts::{EngineLUTs, LUTS};
 use crate::simulation::Agent;
 mod sim_test;
 
@@ -25,9 +25,8 @@ pub fn run_position_diagnostic(
     initial_state: &GameState,
     target_depth: usize,
 ) -> (Result<Move, String>, DiagnosticMetrics) {
-    let luts = EngineLUTs::get_engine_luts();
+    let luts = &LUTS;
     let evaluator = Arc::new(StaticDotProductEvaluator::new(
-        luts,
         DEFAULT_EVALUATOR_WEIGHTS,
     ));
 
@@ -43,8 +42,7 @@ pub fn run_position_diagnostic(
 
     let ctx = SearchContext {
         cancelled: cancelled.as_ref(),
-        evaluator: evaluator.as_ref(),
-        luts,
+        evaluator: evaluator.as_ref()
     };
 
     let agent = NegamaxPlayAgent::new( target_depth, target_depth);

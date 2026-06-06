@@ -1,5 +1,8 @@
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::AtomicBool;
+use core_engine::ai::heuristics::FeatureMatrix;
+use core_engine::ai::models::static_dot::StaticDotProductEvaluatorWeights;
+use core_engine::luts::LUTS;
 use core_engine::{
     ai::{
         EvaluationScore, PositionEvaluator,
@@ -82,15 +85,15 @@ impl App {
         // Resolve target weight vector matrix
         let final_weights = match weights_path {
             Some(path) => match load_weights_from_npy(path) {
-                Ok(loaded_matrix) => loaded_matrix,
+                Ok(loaded_matrix) => StaticDotProductEvaluatorWeights(loaded_matrix),
                 Err(_err) => DEFAULT_EVALUATOR_WEIGHTS,
             }
             None => DEFAULT_EVALUATOR_WEIGHTS,
         };
 
         // Instantiate structural components using the resolved weights
-        let luts = EngineLUTs::get_engine_luts();
-        let evaluator = Arc::new(StaticDotProductEvaluator::new(luts, final_weights));
+        let luts = &LUTS;
+        let evaluator = Arc::new(StaticDotProductEvaluator::new(final_weights));
         
         // Pass the structural lookups and static evaluator layers to match the updated parameters block
         let search_engine = Arc::new(NegamaxPlayAgent::new( 2, 12));
@@ -140,12 +143,9 @@ impl App {
     }
 
     /// Pulls the calculated structural matrix directly out of our baseline evaluator engine.
-    pub fn get_current_heuristics(&self) -> HeuristicMatrix {
-        let (allied, enemy) = match self.game_state.active_player {
-            Player::P1 => (self.game_state.p1_pieces, self.game_state.p2_pieces),
-            Player::P2 => (self.game_state.p2_pieces, self.game_state.p1_pieces),
-        };
-        evaluators::evaluate_position(allied, enemy, EngineLUTs::get_engine_luts())
+    pub fn get_current_heuristics(&self) -> FeatureMatrix {
+        let (allied, enemy) = self.game_state.get_player_pieces_relative();
+        evaluators::evaluate_position(allied, enemy)
     }
 
     /// Evaluates the positional score from the perspective of the active moving player.

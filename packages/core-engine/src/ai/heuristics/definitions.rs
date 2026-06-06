@@ -107,3 +107,14 @@ impl HeuristicMatrix {
         }
     }
 }
+
+/// Structured container holding the 108 localized board feature densities.
+pub struct FeatureMatrix {
+    pub values: [[[[u8; 2]; 3]; 6]; 3],
+}
+
+impl FeatureMatrix {
+    pub fn new() -> Self {
+        Self{values:[[[[0; 2]; 3]; 6]; 3]}
+    }
+}

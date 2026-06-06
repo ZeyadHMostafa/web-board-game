@@ -1,20 +1,39 @@
-use crate::luts::EngineLUTs;
+use std::sync::Arc;
+use std::ops::{Deref, DerefMut};
 
-pub mod implementations;
 pub(crate) mod utils;
-pub use utils::load_weights_from_npy;
-pub use utils::DEFAULT_EVALUATOR_WEIGHTS;
+pub(crate) mod store;
+pub mod implementations;
 
-pub struct StaticDotProductEvaluator {
-    luts: &'static EngineLUTs,
-    weights: [[[[i32; 2]; 3]; 6]; 3],
+pub type RawWeightTensor = [[[[i32; 2]; 3]; 6]; 3];
+pub use utils::DEFAULT_EVALUATOR_WEIGHTS;
+pub use store::load_weights_from_npy;
+
+/// High-performance container wrapping static array-allocated evaluator weights.
+/// Implements transparent dereferencing directly into structural tensor definitions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StaticDotProductEvaluatorWeights(pub RawWeightTensor);
+
+impl Deref for StaticDotProductEvaluatorWeights {
+    type Target = RawWeightTensor;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
-use std::sync::Arc;
+impl DerefMut for StaticDotProductEvaluatorWeights {
+    #[inline(always)]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
-/// Sibling evaluator designed to handle dynamic weights coming from Python ML loops
+pub struct StaticDotProductEvaluator {
+    pub(crate) weights: StaticDotProductEvaluatorWeights,
+}
+
 pub struct TrainableDotProductEvaluator {
-    luts: &'static EngineLUTs,
-    // Flattened weight array: 3 * 6 * 3 * 2 = 108 elements
-    pub weights: Arc<Vec<i32>>, 
+    pub(crate) weights: Arc<Vec<i32>>,
 }

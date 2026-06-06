@@ -16,7 +16,7 @@ struct RatedMove {
 
 pub fn render(f: &mut Frame<'_>, area: Rect, app: &App) {
     // 1. Gather all immediate legal actions using the global reference LUTs
-    let legal_moves = app.game_state.generate_legal_moves(EngineLUTs::get_engine_luts());
+    let legal_moves = app.game_state.generate_legal_moves();
     let mut rated_moves = Vec::with_capacity(legal_moves.len());
 
     // 2. Perform a 1-ply lookahead simulation pass for telemetry reporting
