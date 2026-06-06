@@ -4,7 +4,7 @@ use crate::{ai::{PositionEvaluator, ScoredMove}, rules::moves::Move};
 
 pub mod controllers;
 pub mod algorithms;
-pub(crate) mod selector;
+pub mod selector;
 pub(super) mod utils;
 
 pub struct SearchContext<'a> {

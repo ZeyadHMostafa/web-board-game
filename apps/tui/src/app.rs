@@ -3,6 +3,7 @@ use std::sync::atomic::AtomicBool;
 use core_engine::ai::heuristics::FeatureMatrix;
 use core_engine::ai::models::simple_heuristic::SimpleHeuristicPositionEvaluator;
 use core_engine::ai::models::static_dot::StaticDotProductEvaluatorWeights;
+use core_engine::ai::search::selector::Difficulty;
 use core_engine::luts::LUTS;
 use core_engine::{
     ai::{
@@ -102,7 +103,7 @@ impl App {
         let evaluator = Arc::new(SimpleHeuristicPositionEvaluator::new());
         
         // Pass the structural lookups and static evaluator layers to match the updated parameters block
-        let search_engine = Arc::new(NegamaxPlayAgent::new( 2, 12));
+        let search_engine = Arc::new(NegamaxPlayAgent::new( 2, 12, Difficulty::ADVANCED));
 
         let mut app = Self {
             evaluator,

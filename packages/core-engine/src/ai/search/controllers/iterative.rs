@@ -8,6 +8,8 @@ use crate::ai::evaluator::EvaluationScore;
 use crate::rules::state::GameState;
 use crate::ai::search::ActiveTelemetry;
 
+const DEBUG: bool = false;
+
 pub struct IterativeDeepeningController<'a> {
     ctx: &'a SearchContext<'a>,
     min_depth: usize,
@@ -69,7 +71,6 @@ impl<'a> IterativeDeepeningController<'a> {
 
             while !self.ctx.cancelled.load(Ordering::Relaxed) {
                 // Loop internally to flush out consecutive Backtracks immediately 
-                // before printing diagnostic frame telemetry
                 while let StepResult::Backtrack { score, pv } = status {
                     if machine.stack.len() == 1 {
                         let explored_idx = machine.stack[0].move_idx - 1;
@@ -78,7 +79,7 @@ impl<'a> IterativeDeepeningController<'a> {
 
                         layer_candidates.push(ScoredMove {
                             current_move: target_move,
-                            score: root_perspective_score, // This safely becomes Mating(3)
+                            score: root_perspective_score,
                         });
                     }
                     status = machine.handle_backtrack(score, pv);
@@ -93,7 +94,8 @@ impl<'a> IterativeDeepeningController<'a> {
                     break;
                 }
                 
-                if false {
+                
+                if DEBUG {
                     println!("\n\n");
                     println!("{:?}",status);
                     println!("depth: {}", machine.stack.len()-1);

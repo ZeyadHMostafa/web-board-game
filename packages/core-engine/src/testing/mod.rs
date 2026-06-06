@@ -4,6 +4,7 @@ use std::time::Instant;
 
 use crate::ai::EvaluationScore;
 use crate::ai::search::algorithms::negamax::NegamaxPlayAgent;
+use crate::ai::search::selector::Difficulty;
 use crate::ai::search::{SearchContext, SearchProgress};
 use crate::ai::models::static_dot::{StaticDotProductEvaluator, DEFAULT_EVALUATOR_WEIGHTS};
 use crate::rules::moves::Move;
@@ -45,7 +46,7 @@ pub fn run_position_diagnostic(
         evaluator: evaluator.as_ref()
     };
 
-    let agent = NegamaxPlayAgent::new( target_depth, target_depth);
+    let agent = NegamaxPlayAgent::new( target_depth, target_depth, Difficulty::EXPERT);
 
     println!("--------------------------------------------------");
     println!("Executing engine diagnostic profiling...");
