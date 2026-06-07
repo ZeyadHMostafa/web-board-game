@@ -15,7 +15,7 @@ export default function TurnIndicator({ currentPlayer, gameEnded }) {
       <div>
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Current Turn</span>
         <h3 className="text-lg font-bold text-slate-200 mt-0.5">
-          {isWhiteTurn ? 'White Engine' : 'Black Engine'}
+          {isWhiteTurn ? 'White' : 'Black'}
         </h3>
       </div>
       
