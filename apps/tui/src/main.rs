@@ -34,14 +34,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         terminal.draw(|f| ui::render(f, &app))?;
 
         // Non-blocking poll checks for input for 16ms (~60 FPS frame target)
-        if event::poll(Duration::from_millis(16))? {
-            if let Event::Key(key_event) = event::read()? {
+        if event::poll(Duration::from_millis(16))?
+            && let Event::Key(key_event) = event::read()? {
                 // Filter out internal key release echoes (relevant on Windows environments)
                 if key_event.kind == event::KeyEventKind::Press {
                     handler::handle_key_events(key_event, &mut app);
                 }
             }
-        }
 
         // Check background search state updates safely without blocking the UI framework
         if !app.is_ai_searching {

@@ -8,15 +8,13 @@ use core_engine::luts::LUTS;
 use core_engine::{
     ai::{
         EvaluationScore, PositionEvaluator,
-        heuristics::{HeuristicMatrix, evaluators},
+        heuristics::evaluators,
         models::static_dot::{
             DEFAULT_EVALUATOR_WEIGHTS,
-            StaticDotProductEvaluator,
             load_weights_from_npy
         },
         search::{SearchProgress, algorithms::negamax::NegamaxPlayAgent}
     },
-    luts::EngineLUTs,
     rules::state::{GameState, Player, Bitboard}
 };
 
@@ -94,7 +92,7 @@ impl App {
         };
 
         // Instantiate structural components using the resolved weights
-        let luts = &LUTS;
+        let _luts = &LUTS;
 
         // switch to this if you want to test static dot
         // let evaluator = Arc::new(StaticDotProductEvaluator::new(final_weights));

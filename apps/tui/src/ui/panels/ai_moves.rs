@@ -5,7 +5,6 @@ use ratatui::{
     Frame,
 };
 use crate::app::App;
-use core_engine::luts::EngineLUTs;
 use core_engine::rules::moves::Move;
 use core_engine::ai::EvaluationScore;
 
@@ -21,7 +20,7 @@ pub fn render(f: &mut Frame<'_>, area: Rect, app: &App) {
 
     // 2. Perform a 1-ply lookahead simulation pass for telemetry reporting
     for current_move in legal_moves {
-        let mut virtual_state = app.game_state.clone();
+        let mut virtual_state = app.game_state;
         virtual_state.make_move(current_move);
 
         // Score the result from the opponent's new turn perspective

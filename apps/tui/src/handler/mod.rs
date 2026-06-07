@@ -1,8 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use crate::app::{App, GameMode, ActivePanelTab, ControllerAgent, SelectionState};
 use core_engine::simulation::Agent;
-use core_engine::simulation::GameClock;
-use core_engine::luts::EngineLUTs;
 use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -103,7 +101,7 @@ fn trigger_ai_move(app: &mut App) {
 
     // Configure structural parameters and context tokens
     let cancelled = Arc::new(AtomicBool::new(false));
-    let nodes_explored = std::sync::atomic::AtomicUsize::new(0);
+    let _nodes_explored = std::sync::atomic::AtomicUsize::new(0);
 
     let shared_progress = Arc::new(RwLock::new(SearchProgress {
         candidates: Vec::new(),
@@ -114,7 +112,7 @@ fn trigger_ai_move(app: &mut App) {
     }));
 
     // Clone inputs to safely transfer ownership to the background worker thread
-    let state_clone = app.game_state.clone();
+    let state_clone = app.game_state;
     let agent_clone = app.search_engine.clone(); // Assumes your engine pointer is wrapped in an Arc
     let worker_cancelled = cancelled.clone();
     let worker_progress = shared_progress.clone();
