@@ -1,4 +1,4 @@
-import init, { WasmEngine } from 'core-engine';
+import init, { WasmEngine } from '../wasm/core_engine';
 import { matrixToBitboards, bitIndexToCoord } from '../utils/engineAdapterMock';
 
 let wasmInitialized = false;

@@ -1,4 +1,4 @@
-import init, { WasmEngine } from 'core-engine';
+import init, { WasmEngine } from '../wasm/core_engine';
 import { BoardMatrix } from './boardMatrix';
 
 // Cache to hold the generated legal moves for the current active board position state

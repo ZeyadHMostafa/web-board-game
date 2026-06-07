@@ -1,4 +1,6 @@
 pub mod environment;
+
+#[cfg(feature = "python")]
 pub mod parallel;
 
 // Re-export the core interfaces

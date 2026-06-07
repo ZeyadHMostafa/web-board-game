@@ -9,7 +9,7 @@ use crate::ai::search::{SearchContext, SearchProgress};
 use crate::ai::models::static_dot::{StaticDotProductEvaluator, DEFAULT_EVALUATOR_WEIGHTS};
 use crate::rules::moves::Move;
 use crate::rules::state::GameState;
-use crate::luts::{EngineLUTs, LUTS};
+use crate::luts::LUTS;
 use crate::simulation::Agent;
 mod sim_test;
 

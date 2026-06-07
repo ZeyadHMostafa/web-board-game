@@ -6,6 +6,7 @@
   ],
   "scripts": {
     "web:dev": "npm run dev --workspace=apps/web",
-    "web:build": "npm run build --workspace=apps/web"
+    "web:build": "npm run build --workspace=apps/web",
+    "wasm:build": "wasm-pack build ./packages/core-engine --target web --out-dir ../../apps/web/src/wasm -- --features wasm"
   }
 }
