@@ -63,8 +63,16 @@ export function useGameState() {
   /**
    * Local, pure state mutation layer
    */
-  const executeMove = useCallback((from, to) => {
+  const executeMove = useCallback(async (from, to) => {
     if (gameEnded) return false;
+
+    const legalMoves = await EngineAdapterMock.getValidMovesForPiece(board, from, currentPlayer);
+  
+    const isValid = legalMoves.some(move => move.row === to.row && move.col === to.col);
+    
+    if (!isValid) {
+      return false;
+    }
 
     const piece = BoardMatrix.getPiece(board, from.row, from.col);
     let updatedBoard = BoardMatrix.setPiece(board, from.row, from.col, null);

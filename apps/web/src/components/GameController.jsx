@@ -80,14 +80,14 @@ export default function GameController() {
     setMousePosition({ x: event.clientX, y: event.clientY });
   }, [draggedPiece]);
 
-  const handleMoveAttempt = useCallback((fromCoords, toCoords) => {
-    executeMove(fromCoords, toCoords);
+  const handleMoveAttempt = useCallback( async (fromCoords, toCoords) => {
+    await executeMove(fromCoords, toCoords);
   }, [executeMove]);
 
   /**
    * Handles individual, static cell selection clicks
    */
-  const handleSquareClick = useCallback((coords) => {
+  const handleSquareClick = useCallback(async (coords) => {
     if (autoPlayers[currentPlayer]) return;
 
     // Determine if the clicked cell matches an option inside our pre-calculated targets array
@@ -97,7 +97,7 @@ export default function GameController() {
 
     if (selectedCoords && isTargetingValidMove) {
       // User has a piece active and clicked an authorized destination square -> Execute!
-      executeMove(selectedCoords, coords);
+      await executeMove(selectedCoords, coords);
     } else {
       // Otherwise, evaluate changing the current active selection coordinate focus
       selectPiece(coords);

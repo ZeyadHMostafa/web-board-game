@@ -26,7 +26,7 @@ export function useWorkerOrchestrator(gameState) {
       { type: 'module' }
     );
 
-    workerRef.current.onmessage = (e) => {
+    workerRef.current.onmessage = async (e) => {
       const { type, move, progress, error } = e.data;
 
       if (error) {
@@ -35,7 +35,7 @@ export function useWorkerOrchestrator(gameState) {
       }
 
       if (type === 'AI_MOVE_READY') {
-        executeMove(move.from, move.to);
+        await executeMove(move.from, move.to);
       }
 
       if (type === 'EVAL_PROGRESS_UPDATE') {
@@ -48,7 +48,7 @@ export function useWorkerOrchestrator(gameState) {
           .map(c => ({
             from: c.from,
             to: c.to,
-            rating: parseFloat(Math.min(Math.max((c.scoreValue / 100) + 5.0, 1.0), 10.0).toFixed(1))
+            rating: parseFloat(c.scoreValue)
           }));
         
         setAssistMoves(topMoves);
@@ -67,6 +67,15 @@ export function useWorkerOrchestrator(gameState) {
     const isCurrentAuto = autoPlayers[currentPlayer];
     const currentConfig = PLAYER_CONFIGS[currentPlayer];
 
+    if (showAssist) {
+      workerRef.current.postMessage({
+        type: 'COMPUTE_LIVE_EVAL',
+        board,
+        currentPlayer,
+        config: currentConfig
+      });
+    }
+
     if (isCurrentAuto) {
       setLiveProgress(null);
       
@@ -80,13 +89,8 @@ export function useWorkerOrchestrator(gameState) {
       }, 500);
 
       return () => clearTimeout(timer);
-    } else if (showAssist) {
-      workerRef.current.postMessage({
-        type: 'COMPUTE_LIVE_EVAL',
-        board,
-        currentPlayer,
-        config: currentConfig
-      });
     }
+    
+    
   }, [board, currentPlayer, autoPlayers, gameEnded, showAssist, setLiveProgress]);
 }
