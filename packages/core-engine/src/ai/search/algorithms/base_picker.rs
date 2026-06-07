@@ -32,7 +32,7 @@ impl Agent for BasePickerSearch {
         let mut layer_candidates = Vec::with_capacity(legal_moves.len());
 
         for current_move in legal_moves {
-            let mut next_state = state.clone();
+            let mut next_state = *state;
             next_state.make_move(current_move);
 
             let raw_score = self.evaluator.evaluate(&next_state);

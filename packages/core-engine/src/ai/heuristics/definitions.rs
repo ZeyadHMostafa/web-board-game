@@ -100,6 +100,12 @@ pub struct HeuristicMatrix {
     pub values: [[[[i16; 2]; 3]; 6]; 3],
 }
 
+impl Default for HeuristicMatrix {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HeuristicMatrix {
     pub const fn new() -> Self {
         Self {
@@ -111,6 +117,12 @@ impl HeuristicMatrix {
 /// Structured container holding the 108 localized board feature densities.
 pub struct FeatureMatrix {
     pub values: [[[[u8; 2]; 3]; 6]; 3],
+}
+
+impl Default for FeatureMatrix {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl FeatureMatrix {

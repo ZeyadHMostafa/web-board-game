@@ -5,8 +5,7 @@ use crate::{
 
 /// Global pre-computed weights matrix for quick initialization across files.
 pub const DEFAULT_EVALUATOR_WEIGHTS: StaticDotProductEvaluatorWeights
-    = StaticDotProductEvaluatorWeights{
-        0: generate_weights(
+    = StaticDotProductEvaluatorWeights(generate_weights(
     // Base action prospects based on TileType and SovereigntyState
     // Dimensions: [SovereigntyState: 6][TileType: 3]
     [
@@ -20,8 +19,7 @@ pub const DEFAULT_EVALUATOR_WEIGHTS: StaticDotProductEvaluatorWeights
     ],
     // Multipliers for each RegionType: Corner, Edge, Center
     [10, 11, 12],
-)
-};
+));
 
 /// Generates the multi-dimensional weights matrix using procedural combination rules.
 /// Parity values (Even and Odd columns) remain identical as parity yields no effect here.   

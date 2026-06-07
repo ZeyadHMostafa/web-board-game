@@ -26,7 +26,7 @@ pub fn run_position_diagnostic(
     initial_state: &GameState,
     target_depth: usize,
 ) -> (Result<Move, String>, DiagnosticMetrics) {
-    let luts = &LUTS;
+    let _luts = &LUTS;
     let evaluator = Arc::new(StaticDotProductEvaluator::new(
         DEFAULT_EVALUATOR_WEIGHTS,
     ));

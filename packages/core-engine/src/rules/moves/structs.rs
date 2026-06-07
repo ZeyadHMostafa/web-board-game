@@ -97,7 +97,7 @@ impl Move {
         from_idx: u8, 
         mut destination_mask: Bitboard,
         enemy_pieces: Bitboard,
-        flags: u8, 
+        _flags: u8, 
         move_list: &mut MoveList
     ) {
         

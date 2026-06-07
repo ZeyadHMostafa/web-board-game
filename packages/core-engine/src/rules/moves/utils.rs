@@ -15,8 +15,8 @@ pub(super) fn get_orthogonal_mask(piece_idx: u8) -> Bitboard {
     
     // Shift single piece bit globally in all 4 cardinal directions.
     // Invalid wrapping artifacts across files are cleanly vanished with file masks.
-    let adjacent = ((piece_mask >> 8)                    ) | // North (-8 index offset)
-                        ((piece_mask << 8)                    ) | // South (+8 index offset)
+    let adjacent = (piece_mask >> 8) | // North (-8 index offset)
+                        (piece_mask << 8) | // South (+8 index offset)
                         ((piece_mask << 1) & LUTS.not_a_file.0) | // East  (+1 index offset)
                         ((piece_mask >> 1) & LUTS.not_h_file.0);  // West  (-1 index offset)
 
@@ -39,12 +39,12 @@ pub(super) fn generate_7bit_key(piece_idx: u8, pivot_idx: u8, occupancy: Bitboar
     // convert to:
     // TL L  BL B  BR R  TR T
     // 7  6  5  4  3  2  1  0
-    let t  = ((shifted_occupancy >> (17-0)) & (1<<0)) as u8; // Move index 17 to bit 0
+    let t  = ((shifted_occupancy >> 17) & (1<<0)) as u8; // Move index 17 to bit 0
     let tr = ((shifted_occupancy >> (18-1)) & (1<<1)) as u8; // Move index 18 to bit 1
     let r  = ((shifted_occupancy >> (10-2)) & (1<<2)) as u8; // Move index 10 to bit 2
     let br = ((shifted_occupancy << (3-2))  & (1<<3)) as u8; // Move index 2  to bit 3
     let b  = ((shifted_occupancy << (4-1))  & (1<<4)) as u8; // Move index 1  to bit 4
-    let bl = ((shifted_occupancy << (5-0))  & (1<<5)) as u8; // Move index 0  to bit 5
+    let bl = ((shifted_occupancy << 5)  & (1<<5)) as u8; // Move index 0  to bit 5
     let l  = ((shifted_occupancy >> (8-6))  & (1<<6)) as u8; // Move index 8  to bit 6
     let tl = ((shifted_occupancy >> (16-7)) & (1<<7)) as u8; // Move index 16 to bit 7
 
@@ -157,7 +157,7 @@ where
         let carry_ripple = state_mask.wrapping_add(immediate_neighbor);
         
         // The landing square is the bit that caught the carry explosion
-        landing_square = carry_ripple & & !state_mask;
+        landing_square = carry_ripple & !state_mask;
     } else {
         // --- BACKWARD SCANNING CHIPS (SE / SW) ---
         // For right-to-left shifts, a carry ripple moves the wrong way. Instead, we use bit-smearing.

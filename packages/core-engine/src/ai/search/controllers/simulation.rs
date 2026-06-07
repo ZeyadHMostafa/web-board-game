@@ -22,7 +22,7 @@ impl<'a> SimulationController<'a> {
             self.ctx,
             tt,
             &telemetry,
-            true_state.clone(),
+            *true_state,
             self.target_depth,
         );
 
@@ -53,7 +53,7 @@ impl<'a> SimulationController<'a> {
             self.ctx,
             tt,
             &telemetry,
-            true_state.clone(),
+            *true_state,
             self.target_depth,
         );
 

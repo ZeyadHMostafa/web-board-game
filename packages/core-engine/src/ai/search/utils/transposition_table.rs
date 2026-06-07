@@ -64,11 +64,10 @@ impl TranspositionTable {
     pub fn lookup(& self, state: &GameState) -> Option<TranspositionEntry> {
         let (key, index) = self.get_table_index(state);
         
-        if let Some(entry) = self.table[index] {
-            if entry.state_key == key {
+        if let Some(entry) = self.table[index]
+            && entry.state_key == key {
                 return Some(entry);
             }
-        }
         None
     }
 
@@ -77,11 +76,10 @@ impl TranspositionTable {
     pub fn store(&mut self, state: &GameState, score: EvaluationScore, depth: usize, bounds: HashEntryBounds) {
         let (key, index) = self.get_table_index(state);
 
-        if let Some(existing) = self.table[index] {
-            if existing.depth > depth && existing.state_key == key {
+        if let Some(existing) = self.table[index]
+            && existing.depth > depth && existing.state_key == key {
                 return;
             }
-        }
 
         self.table[index] = Some(TranspositionEntry {
             state_key: key,

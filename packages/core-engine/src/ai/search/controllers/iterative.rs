@@ -56,7 +56,7 @@ impl<'a> IterativeDeepeningController<'a> {
                 self.ctx,
                 &mut tt,
                 &telemetry,
-                true_state.clone(),
+                *true_state,
                 current_depth,
             );
 

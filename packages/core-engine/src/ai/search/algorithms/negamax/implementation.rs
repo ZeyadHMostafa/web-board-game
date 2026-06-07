@@ -220,13 +220,12 @@ impl<'a, T: SearchTelemetry> NegamaxStateMachine<'a, T> {
         
         // Clean up last move
         let mut last_executed_move = None;
-        if let Some(last_frame) = self.stack.last_mut() {
-            if last_frame.move_idx > 0 {
+        if let Some(last_frame) = self.stack.last_mut()
+            && last_frame.move_idx > 0 {
                 let m = last_frame.legal_moves[last_frame.move_idx - 1];
                 last_executed_move = Some(m);
                 self.state.unmake_move(m);
             }
-        }
 
         let relative_score = invert_score(child_score);
         let is_root = self.stack.len() == 1;

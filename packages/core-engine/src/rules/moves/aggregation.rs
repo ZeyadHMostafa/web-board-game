@@ -1,5 +1,4 @@
 use crate::{luts::LUTS, rules::state::Bitboard};
-use crate::luts::EngineLUTs;
 use super::utils::{
     align_relative_mask, compute_ray_moves, generate_7bit_key, get_orthogonal_mask,
     shift_and_clip_mask,
