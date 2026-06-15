@@ -4,17 +4,20 @@ use std::sync::atomic::AtomicBool;
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 
+
+use crate::ai::models::simple_heuristic::SimpleHeuristicPositionEvaluator;
 use crate::rules::state::{GameState, Player};
 use crate::rules::moves::{Move, MoveList};
 use crate::ai::search::SearchContext;
 use crate::ai::search::controllers::IterativeDeepeningController;
 use crate::ai::search::selector::{ActionSelector, SelectorMode, Difficulty};
-use crate::ai::PositionEvaluator;
 use crate::ai::EvaluationScore;
 
 // ============================================================================
 // SERDE DATA TRANSFER STRUCTURES FOR JAVASCRIPT EXCHANGES
 // ============================================================================
+
+ const WASM_MATE_THRESHOLD: i32 = 1000_000;
 
 #[derive(Serialize, Deserialize)]
 pub struct WasmGameState {
@@ -104,7 +107,7 @@ impl WasmEngine {
         let state: GameState = self::parse_game_state(js_state)?;
         
         let cancelled = AtomicBool::new(false);
-        let evaluator = DefaultPositionEvaluator::new();
+        let evaluator = SimpleHeuristicPositionEvaluator::new();
         let ctx = SearchContext {
             evaluator: &evaluator,
             cancelled: &cancelled,
@@ -154,7 +157,7 @@ impl WasmEngine {
         let state: GameState = self::parse_game_state(js_state)?;
         
         let cancelled = AtomicBool::new(false);
-        let evaluator = DefaultPositionEvaluator::new();
+        let evaluator = SimpleHeuristicPositionEvaluator::new();
         let ctx = SearchContext {
             evaluator: &evaluator,
             cancelled: &cancelled,
@@ -256,32 +259,7 @@ fn parse_move_primitive(raw: JsValue) -> Result<Move, JsValue> {
 fn extract_score_scalar(score: EvaluationScore) -> i32 {
     match score {
         EvaluationScore::Value(v) => v,
-        EvaluationScore::Mating(ply) => i32::MAX - (ply as i32),
-        EvaluationScore::Mated(ply) => i32::MIN + (ply as i32),
-    }
-}
-
-/// Internal stub type implementation satisfying interface dynamic trait requirements.
-struct DefaultPositionEvaluator;
-
-impl DefaultPositionEvaluator {
-    #[inline(always)]
-    const fn new() -> Self {
-        Self
-    }
-}
-
-impl PositionEvaluator for DefaultPositionEvaluator {
-    #[inline(always)]
-    fn evaluate(&self, state: &GameState) -> EvaluationScore {
-        let p1_count = state.p1_pieces.count_ones() as i32;
-        let p2_count = state.p2_pieces.count_ones() as i32;
-        
-        let score_diff = match state.active_player {
-            Player::P1 => p1_count - p2_count,
-            Player::P2 => p2_count - p1_count,
-        };
-        
-        EvaluationScore::Value(score_diff * 100)
+        EvaluationScore::Mating(ply) => WASM_MATE_THRESHOLD - (ply as i32),
+        EvaluationScore::Mated(ply) => -WASM_MATE_THRESHOLD + (ply as i32),
     }
 }

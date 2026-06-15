@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 
 const PLAYER_CONFIGS = {
-  0: { minDepth: 1, maxDepth: 5, temp: 0.2, bThresh: 30 }, // White
-  1: { minDepth: 1, maxDepth: 4, temp: 0.6, bThresh: 50 }  // Black
+  0: { minDepth: 1, maxDepth: 3, temp: 0.2, bThresh: 20 }, // White
+  1: { minDepth: 1, maxDepth: 3, temp: 0.2, bThresh: 20 }  // Black
 };
 
 export function useWorkerOrchestrator(gameState) {
