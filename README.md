@@ -1,4 +1,4 @@
-# Modern Orbital Chess
+# Modern Orbital Abstract BoardGame
 
 A high-performance, polyglot monorepo implementation of an abstract strategy board game. This architecture features a core deterministic rules engine, AI decision logic, and simulation layers written in Rust, compiled down to WebAssembly for a fluid, fully client-side React frontend, and exposed via C-extensions to a Python machine learning pipeline.
 
