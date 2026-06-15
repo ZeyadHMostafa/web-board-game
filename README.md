@@ -1,6 +1,6 @@
 # Modern Orbital Chess
 
-A high-performance, polyglot monorepo implementation of the classic abstract strategy board game. This architecture features a core deterministic rules engine, AI decision logic, and simulation layers written in Rust, compiled down to WebAssembly for a fluid, fully client-side React frontend, and exposed via C-extensions to a Python machine learning pipeline.
+A high-performance, polyglot monorepo implementation of an abstract strategy board game. This architecture features a core deterministic rules engine, AI decision logic, and simulation layers written in Rust, compiled down to WebAssembly for a fluid, fully client-side React frontend, and exposed via C-extensions to a Python machine learning pipeline.
 
 ---
 
@@ -57,7 +57,7 @@ A piece orthogonally adjacent to another friendly piece (the pivot) can swing 90
 
 * There are no draw conditions; the game must resolve decisively.
 * Moving back and forth to repeat identical board states results in th first player repeating a board position to lose the game. and is thus considered forbidden
-* this howeverhas not been implemented yet
+* this however has not been implemented yet
 
 ---
 
