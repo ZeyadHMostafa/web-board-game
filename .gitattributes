@@ -1,0 +1,2 @@
+apps/web/src/wasm/*.wasm binary
+apps/web/src/wasm/*.js text
