@@ -11,7 +11,6 @@ use crate::rules::moves::Move;
 use crate::rules::state::GameState;
 use crate::luts::LUTS;
 use crate::simulation::Agent;
-mod sim_test;
 
 pub struct DiagnosticMetrics {
     pub duration_ms: u128,
