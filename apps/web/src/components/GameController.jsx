@@ -108,12 +108,14 @@ export default function GameController() {
     if (autoPlayers[currentPlayer]) return;
 
     const piece = BoardMatrix.getPiece(board, coords.row, coords.col);
-    if (piece) {
+    if (piece && piece == ['W','B'][currentPlayer]) {
       setDraggedPiece(piece);
       setMousePosition({ x: clientX, y: clientY });
       
       // Mirror drag targets visually by forcing selection hooks to match the dragged origin
       selectPiece(coords);
+    } else {
+      console.log(piece)
     }
   };
 
