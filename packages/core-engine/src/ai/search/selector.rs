@@ -38,6 +38,10 @@ impl ActionSelector {
             return None;
         }
 
+        let has_mate = result.candidates.iter().any(|c| {
+            matches!(c.score, EvaluationScore::Mating(_) | EvaluationScore::Mated(_))
+        });
+
         match mode {
             SelectorMode::Competitive => {
                 result.candidates
@@ -46,6 +50,12 @@ impl ActionSelector {
                     .map(|c| c.current_move)
             }
             SelectorMode::TrainingExploration { epsilon } => {
+                if has_mate {
+                    return result.candidates
+                        .iter()
+                        .max_by_key(|c| self::extract_score_value(c.score))
+                        .map(|c| c.current_move);
+                }
                 let mut rng = rand::rng();
                 if rng.random::<f32>() < epsilon {
                     let random_idx = rng.random_range(0..result.candidates.len());
@@ -58,7 +68,7 @@ impl ActionSelector {
                 }
             }
             SelectorMode::AdaptiveDifficulty(difficulty) => {
-                if difficulty == Difficulty::EXPERT {
+                if difficulty.temp < 0.1 || has_mate {
                     return result.candidates
                         .iter()
                         .max_by_key(|c| self::extract_score_value(c.score))

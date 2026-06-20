@@ -17,7 +17,7 @@ use crate::ai::EvaluationScore;
 // SERDE DATA TRANSFER STRUCTURES FOR JAVASCRIPT EXCHANGES
 // ============================================================================
 
- const WASM_MATE_THRESHOLD: i32 = 1000_000;
+ const WASM_MATE_THRESHOLD: i32 = i32::MAX-1;
 
 #[derive(Serialize, Deserialize)]
 pub struct WasmGameState {
