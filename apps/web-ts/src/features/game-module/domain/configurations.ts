@@ -10,6 +10,13 @@ export interface FeatureConfiguration {
   maxAssistMovesShown: number;
 }
 
+export interface AiEngineConfiguration {
+  minDepth?: number;
+  maxDepth?: number;
+  temp?: number;
+  bThresh?: number;
+}
+
 export const MODE_REGISTRY: Record<GameModeType, FeatureConfiguration> = {
   [GameModeType.STRICT]: {
     modeType: GameModeType.STRICT,
