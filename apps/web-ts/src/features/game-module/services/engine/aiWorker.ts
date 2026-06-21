@@ -1,4 +1,5 @@
 import init, { WasmEngine } from '../../../../wasm/core_engine';
+import type {Move} from '../../domain/types';
 
 interface WasmMove {
   from_square: number;
@@ -60,8 +61,16 @@ function bitIndexToCoord(idx: number) {
   };
 }
 
+let cachedBoardKey = '';
+let memoizedMovesCache: Move[] = [];
+
+function computeBoardCacheKey(board: (string | null)[][], currentPlayer: number): string {
+  // Simple deterministic string representation for the cache lock
+  return JSON.stringify(board) + '-' + currentPlayer;
+}
+
 self.onmessage = async (e: MessageEvent) => {
-  const { type, board, currentPlayer, config } = e.data;
+  const { type, board, currentPlayer, config, id} = e.data;
 
   try {
     await ensureWasmReady();
@@ -71,6 +80,28 @@ self.onmessage = async (e: MessageEvent) => {
       ...bitboards,
       active_player: currentPlayer === 0 ? 'P1' : 'P2'
     };
+
+    if (type === 'COMPUTE_ALL_LEGAL_MOVES') {
+      const currentKey = computeBoardCacheKey(board, currentPlayer);
+      
+      if (memoizedMovesCache.length > 0 && cachedBoardKey === currentKey) {
+        self.postMessage({ type: 'ALL_LEGAL_MOVES_READY', moves: memoizedMovesCache, id });
+        return;
+      }
+
+      // Generate fresh from WASM
+      const rawMoves = WasmEngine.generate_legal_moves(wasmState);
+      
+      memoizedMovesCache = rawMoves.map((m: WasmMove) => ({
+        from: bitIndexToCoord(m.from_square),
+        to: bitIndexToCoord(m.to_square),
+        isCapture: m.is_capture
+      }));
+      cachedBoardKey = currentKey;
+
+      self.postMessage({ type: 'ALL_LEGAL_MOVES_READY', moves: memoizedMovesCache, id });
+      return;
+    }
 
     if (type === 'COMPUTE_AI_MOVE') {
       const rawMove: WasmMove = WasmEngine.compute_ai_move(
@@ -129,7 +160,8 @@ self.onmessage = async (e: MessageEvent) => {
   } catch (error) {
     self.postMessage({
       type: 'ENGINE_ERROR',
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      id
     });
   }
 };

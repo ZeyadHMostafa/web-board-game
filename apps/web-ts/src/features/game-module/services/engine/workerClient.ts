@@ -15,6 +15,8 @@ interface EngineClientCallbacks {
 export class GameEngineClient {
   private worker: Worker | null = null;
   private callbacks: EngineClientCallbacks;
+  private pendingRequests = new Map<number, (moves: Move[]) => void>();
+  private requestCounter = 0;
 
   constructor(callbacks: EngineClientCallbacks) {
     this.callbacks = callbacks;
@@ -27,10 +29,22 @@ export class GameEngineClient {
     });
 
     this.worker.onmessage = (e: MessageEvent) => {
-      const {type, move, progress, error} = e.data;
+      const {type, move, moves, progress, error, id} = e.data;
+
+      if (type === 'ALL_LEGAL_MOVES_READY') {
+        const resolve = this.pendingRequests.get(id);
+        if (resolve) {
+          resolve(moves);
+          this.pendingRequests.delete(id);
+        }
+        return;
+      }
 
       if (error || type === 'ENGINE_ERROR') {
         this.callbacks.onError(error || 'Unknown infrastructure error');
+        if (id !== undefined && this.pendingRequests.has(id)) {
+          this.pendingRequests.delete(id); 
+        }
         return;
       }
 
@@ -43,6 +57,25 @@ export class GameEngineClient {
           break;
       }
     };
+  }
+
+  public requestAllLegalMoves(board: BoardMatrixState, player: PlayerIndex): Promise<Move[]> {
+    return new Promise((resolve) => {
+      if (!this.worker) {
+        resolve([]);
+        return;
+      }
+
+      const id = ++this.requestCounter;
+      this.pendingRequests.set(id, resolve);
+
+      this.worker.postMessage({
+        type: 'COMPUTE_ALL_LEGAL_MOVES',
+        board,
+        currentPlayer: player,
+        id
+      });
+    });
   }
 
   public requestAIMove(

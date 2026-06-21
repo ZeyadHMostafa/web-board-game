@@ -8,6 +8,8 @@ export interface FeatureConfiguration {
   strictRules: boolean;
   maxEvaluationDepth: number;
   maxAssistMovesShown: number;
+  autoPlayers: [boolean, boolean];
+  aiEngineConfig: AiEngineConfiguration;
 }
 
 export interface AiEngineConfiguration {
@@ -26,6 +28,8 @@ export const MODE_REGISTRY: Record<GameModeType, FeatureConfiguration> = {
     strictRules: true,
     maxEvaluationDepth: 0,
     maxAssistMovesShown: 0,
+    autoPlayers: [false, false],
+    aiEngineConfig: {},
   },
   [GameModeType.CASUAL]: {
     modeType: GameModeType.CASUAL,
@@ -35,6 +39,8 @@ export const MODE_REGISTRY: Record<GameModeType, FeatureConfiguration> = {
     strictRules: true,
     maxEvaluationDepth: 0,
     maxAssistMovesShown: 0,
+    autoPlayers: [false, false],
+    aiEngineConfig: {},
   },
   [GameModeType.ANALYSIS]: {
     modeType: GameModeType.ANALYSIS,
@@ -44,5 +50,7 @@ export const MODE_REGISTRY: Record<GameModeType, FeatureConfiguration> = {
     strictRules: false,
     maxEvaluationDepth: 4,
     maxAssistMovesShown: 5,
+    autoPlayers: [false, false],
+    aiEngineConfig: {},
   },
 };
