@@ -48,7 +48,7 @@ export const useTimeline = () => {
 
   return {
     currentSnapshot,
-    historyLength: history.length,
+    history: history,
     currentIndex,
     appendSnapshot,
     jumpToHistoryIndex,

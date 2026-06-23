@@ -2,13 +2,13 @@ import React from 'react';
 import { useGame } from '../../../context/GameContext';
 
 export const TimelineNavigation: React.FC = () => {
-  const { currentIndex, historyLength, jumpToHistoryIndex, gameEnded } = useGame();
+  const { currentIndex, history, jumpToHistoryIndex, gameEnded } = useGame();
 
   // Generate a localized window of frames centered around the current index
   const getVisibleFrames = () => {
     const windowSize = 5; // How many history nodes to display simultaneously
     let start = Math.max(0, currentIndex - Math.floor(windowSize / 2));
-    const end = Math.min(historyLength - 1, start + windowSize - 1);
+    const end = Math.min(history.length - 1, start + windowSize - 1);
 
     // Adjust window offset if running into right-bound limits
     if (end - start + 1 < windowSize) {
@@ -25,7 +25,7 @@ export const TimelineNavigation: React.FC = () => {
   const handleExportHistory = async () => {
     try {
       // Create a simplified text representation of the ledger sequence
-      const exportString = `Simulation Ledger Export\nTotal Frames: ${historyLength}\nCurrent Frame Pointer: ${currentIndex}\nTimestamp: ${new Date().toISOString()}`;
+      const exportString = `Simulation Ledger Export\nTotal Frames: ${history.length}\nCurrent Frame Pointer: ${currentIndex}\nTimestamp: ${new Date().toISOString()}`;
       await navigator.clipboard.writeText(exportString);
       alert('Simulation log copied to clipboard system.');
     } catch (err) {
@@ -66,7 +66,7 @@ export const TimelineNavigation: React.FC = () => {
 
       <button
         onClick={() => jumpToHistoryIndex(currentIndex + 1)}
-        disabled={currentIndex === historyLength - 1 || gameEnded}
+        disabled={currentIndex === history.length - 1 || gameEnded}
         className="p-1 rounded-md hover:bg-surface-card text-text-muted hover:text-text-main disabled:opacity-20 transition-colors cursor-pointer"
       >
         <span className="material-icons text-base">chevron_right</span>

@@ -122,7 +122,7 @@ export const GameProvider: React.FC<{ mode: GameModeType; children: React.ReactN
       currentPlayer: timeline.currentSnapshot.currentPlayer,
       gameEnded: gameState.gameEnded,
       config,
-      historyLength: timeline.historyLength,
+      history: timeline.history,
       currentIndex: timeline.currentIndex,
       liveEval,
       selectedCoords: selection.selectedCoords,

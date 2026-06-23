@@ -3,7 +3,8 @@ import type {
   BoardMatrixState, 
   PlayerIndex,  
   Coordinate,
-  EvaluationProgress
+  EvaluationProgress,
+  GameSnapshot,
 } from '../domain/types';
 import type {FeatureConfiguration} from '../domain/configurations';
 
@@ -14,7 +15,7 @@ export interface GameContextType {
   currentPlayer: PlayerIndex;
   gameEnded: boolean;
   config: FeatureConfiguration;
-  historyLength: number;
+  history: GameSnapshot[];
   currentIndex: number;
   liveEval: EvaluationProgress | null;
   selectedCoords: Coordinate | null;

@@ -7,16 +7,8 @@ export const EvalBar: React.FC = () => {
   if (gameEnded || !liveEval || liveEval.candidates.length === 0) {
     return <div className="h-1.5 w-full bg-border-muted transition-all duration-300" />;
   }
-
-  // Use the top candidate's score to calculate proportions.
-  // Assuming scoreValue is scaled (e.g., centipawns or direct win probability).
-  const topScore = liveEval.candidates[0].scoreValue;
   
-  // Map score to a percentage clamping between 5% and 95% so neither side vanishes entirely
-  const minPct = 5;
-  const maxPct = 95;
-  let whitePercentage = 50 + (topScore * 5); // Simple scaling baseline
-  whitePercentage = Math.max(minPct, Math.min(maxPct, whitePercentage));
+  const whitePercentage = Math.tanh(liveEval.candidates[0].scoreValue/100)*50+50
 
   return (
     <div 

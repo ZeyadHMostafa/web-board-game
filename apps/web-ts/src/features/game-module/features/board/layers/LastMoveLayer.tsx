@@ -4,8 +4,9 @@ import BaseSvgLayer from './BaseSvgLayer';
 import { SvgGridCell } from '../library/SvgGridCell';
 
 export const LastMoveLayer: React.FC = () => {
-  const { liveEval } = useGame();
-  const lastMove = liveEval?.pv?.[0] || null;
+  const { history, currentIndex} = useGame();
+  if (history.length == 1) return;
+  const lastMove = history[currentIndex].lastMove;
 
   if (!lastMove) return null;
 
