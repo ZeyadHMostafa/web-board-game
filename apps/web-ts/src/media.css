@@ -20,8 +20,8 @@
 @media (max-width: 767px) and (orientation: portrait) {
   .holy-grail-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto auto;
-    grid-template-areas: 'nav' 'main' 'right' 'foot';
+		grid-template-rows: auto auto minmax(0, auto) auto;
+    grid-template-areas: 'nav' 'main' 'foot' 'right';
   }
 
   .left-menu-container {
@@ -44,7 +44,7 @@
    ========================================================================= */
 @media (max-width: 950px) and (orientation: landscape) {
   .holy-grail-grid {
-    grid-template-columns: 4rem 1fr 240px;
+    grid-template-columns: 4rem 1fr 300px;
     grid-template-rows: 1fr auto;
     grid-template-areas: 
       'nav main right'
@@ -69,7 +69,7 @@
 /* =========================================================================
    3. Mid-Desktop / Half Screen (FIXED: Acts like Mobile Floating Overlay)
    ========================================================================= */
-@media (min-width: 768px) and (max-width: 1279px) {
+@media (min-width: 950px) and (max-width: 1279px) {
   .holy-grail-grid {
     /* Grid track stays firmly locked so the game board never gets squished */
     grid-template-columns: 0px 1fr 280px;

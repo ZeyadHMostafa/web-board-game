@@ -7,6 +7,8 @@ import type {
 } from '../domain/types';
 import type {FeatureConfiguration} from '../domain/configurations';
 
+import { type AiLevel } from '../domain/configurations';
+
 export interface GameContextType {
   board: BoardMatrixState;
   currentPlayer: PlayerIndex;
@@ -17,13 +19,25 @@ export interface GameContextType {
   liveEval: EvaluationProgress | null;
   selectedCoords: Coordinate | null;
   validMoves: Coordinate[];
+  showAssist: boolean;
+  toggleAssist: () => void;
   selectPiece: (coords: Coordinate | null) => void;
   executeMove: (from: Coordinate, to: Coordinate) => boolean;
   jumpToHistoryIndex: (index: number) => void;
   resetGame: () => void;
   
-  whiteEngine: { isAuto: boolean; toggleAuto: () => void };
-  blackEngine: { isAuto: boolean; toggleAuto: () => void };
+  whiteEngine: { 
+    isAuto: boolean; 
+    toggleAuto: () => void; 
+    currentLevel: AiLevel; 
+    setAiLevel: (level: AiLevel) => void 
+  };
+  blackEngine: { 
+    isAuto: boolean; 
+    toggleAuto: () => void; 
+    currentLevel: AiLevel; 
+    setAiLevel: (level: AiLevel) => void 
+  };
 }
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);

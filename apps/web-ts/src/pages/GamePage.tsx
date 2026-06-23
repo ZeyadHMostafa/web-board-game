@@ -39,7 +39,7 @@ export const GamePage: React.FC = () => {
         </div>
 
         {/* Right Side Menu Section */}
-        <div className="[grid-area:right] min-h-0">
+        <div className="[grid-area:right] h-full w-full min-h-0 flex flex-col overflow-hidden">
           <RightMenu />
         </div>
 

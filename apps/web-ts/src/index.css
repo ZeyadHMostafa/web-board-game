@@ -59,6 +59,10 @@
   --color-highlight-from: rgba(37, 99, 235, 0.18); /* Primary Accent from-state */
   --color-highlight-to: rgba(96, 165, 250, 0.28);   /* Accent Glow target-state */
   --color-selection-bg: rgba(96, 165, 250, 0.08);   /* Selection core fill */
+
+  /* Standard tailwind key re-mappings to keep them aligned */
+  --breakpoint-md: 950px;
+  --breakpoint-lg: 1280px;
 }
 
 @layer base {

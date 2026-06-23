@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GameContext } from './GameContext';
-import { MODE_REGISTRY } from '../domain/configurations';
+import { MODE_REGISTRY, AI_LEVELS, AI_LEVEL_PRESETS, type AiLevel } from '../domain/configurations';
 import { GameEngineClient } from '../services/engine/workerClient';
 import type { GameModeType, Coordinate, EvaluationProgress } from '../domain/types';
 
@@ -15,6 +15,11 @@ export const GameProvider: React.FC<{ mode: GameModeType; children: React.ReactN
   
   const [engineClient, setEngineClient] = useState<GameEngineClient | null>(null);
   const [liveEval, setLiveEval] = useState<EvaluationProgress | null>(null);
+  const [showAssist, setShowAssist] = useState<boolean>(config.enableLiveEval);
+
+  // Dynamic state allowing UI modifications mid-game
+  const [whiteLevel, setWhiteLevel] = useState<AiLevel>(AI_LEVELS.COMPETITOR);
+  const [blackLevel, setBlackLevel] = useState<AiLevel>(AI_LEVELS.COMPETITOR);
   
   const executeMoveRef = useRef<(from: Coordinate, to: Coordinate) => boolean>(null);
   const clearSelectionRef = useRef<() => void>(null);
@@ -68,6 +73,10 @@ export const GameProvider: React.FC<{ mode: GameModeType; children: React.ReactN
     return false;
   }, []);
 
+  const handleToggleAssist = useCallback(() => {
+    setShowAssist((prev) => !prev);
+  }, []);
+
   const handleJumpToHistory = useCallback((index: number) => {
     timeline.jumpToHistoryIndex(index);
     selection.clearSelection();
@@ -80,10 +89,11 @@ export const GameProvider: React.FC<{ mode: GameModeType; children: React.ReactN
     clearEval();
   }, [timeline, selection, clearEval]);
 
+  // Hook receives modified preset objects reactively
   const whiteEngine = useEngine(
     0, 
     config.autoPlayers[0], 
-    config.aiEngineConfig || { minDepth: 1, maxDepth: 3 }, 
+    AI_LEVEL_PRESETS[whiteLevel], 
     timeline.currentSnapshot, 
     engineClient, 
     gameState.gameEnded
@@ -92,7 +102,7 @@ export const GameProvider: React.FC<{ mode: GameModeType; children: React.ReactN
   const blackEngine = useEngine(
     1, 
     config.autoPlayers[1], 
-    config.aiEngineConfig || { minDepth: 1, maxDepth: 3 }, 
+    AI_LEVEL_PRESETS[blackLevel], 
     timeline.currentSnapshot, 
     engineClient, 
     gameState.gameEnded
@@ -117,17 +127,23 @@ export const GameProvider: React.FC<{ mode: GameModeType; children: React.ReactN
       liveEval,
       selectedCoords: selection.selectedCoords,
       validMoves: selection.validMovesForSelection,
+      showAssist,
+      toggleAssist: handleToggleAssist,
       selectPiece: selection.selectPiece,
       executeMove: handleExecuteMove,
       jumpToHistoryIndex: handleJumpToHistory,
       resetGame: handleResetGame,
       whiteEngine: {
         isAuto: whiteEngine.isAuto,
-        toggleAuto: whiteEngine.toggleAuto
+        toggleAuto: whiteEngine.toggleAuto,
+        currentLevel: whiteLevel,
+        setAiLevel: setWhiteLevel
       },
       blackEngine: {
         isAuto: blackEngine.isAuto,
-        toggleAuto: blackEngine.toggleAuto
+        toggleAuto: blackEngine.toggleAuto,
+        currentLevel: blackLevel,
+        setAiLevel: setBlackLevel
       }
     }}>
       {children}

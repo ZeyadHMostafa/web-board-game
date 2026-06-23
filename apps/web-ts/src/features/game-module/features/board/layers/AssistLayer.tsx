@@ -4,9 +4,9 @@ import BaseSvgLayer from './BaseSvgLayer';
 import SvgArrow from '../library/svg/svgArrow';
 
 export const AssistLayer: React.FC = () => {
-  const { liveEval, config } = useGame();
+  const { liveEval, config, showAssist } = useGame();
 
-  if (!config?.maxAssistMovesShown || !liveEval?.candidates) {
+  if (!showAssist || !liveEval?.candidates) {
     return null;
   }
 
