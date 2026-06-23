@@ -757,14 +757,6 @@ The original `HUD.jsx` layout is broken down into isolated, single-responsibilit
 
 ---
 
-## 5.4 Phase 5 Implementation Steps
-
-1. Build out the `UnifiedCanvasLayer` and verify that highlight arrays execute under a single render canvas frame.
-2. Port the interaction math into the Pointer Events hook layout under `src/features/game-module/features/board/hooks/`.
-3. Scaffold the new components inside the HUD library, ensuring color definitions exclusively reference the semantic tokens configured in Section 1.
-
----
-
 When your interface modules and pointer hooks are verified, let's step into the final chapter, **Section 6: View Orchestration & Component Assembly**.
 
 ---
@@ -778,108 +770,6 @@ This final section details the compilation of the entire system. We establish th
 ## 6.1 The Unified `GameContext` State Machine (`context/GameContext.tsx`)
 
 This centralized React Context acts as the primary coordinator for the application. It manages history timelines, monitors active feature configuration parameters, and triggers the infrastructure worker client via the explicit, imperative commands defined in Section 3.
-
-```tsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { BoardMatrixState, PlayerIndex, GameModeType, FeatureConfiguration, Move, EvaluationProgress } from '../domain/types';
-import { MODE_REGISTRY } from '../domain/configurations';
-import { GameEngineClient } from '../services/engine/workerClient';
-
-interface GameContextType {
-    board: BoardMatrixState;
-    currentPlayer: PlayerIndex;
-    gameEnded: boolean;
-    config: FeatureConfiguration;
-    historyLength: number;
-    currentIndex: number;
-    liveEval: EvaluationProgress | null;
-    executeMove: (from: any, to: any) => Promise<boolean>;
-    jumpToHistoryIndex: (index: number) => void;
-    resetGame: () => void;
-}
-
-const GameContext = createContext<GameContextType | undefined>(undefined);
-
-export const GameProvider: React.FC<{ mode: GameModeType; children: React.ReactNode }> = ({ mode, children }) => {
-    const config = MODE_REGISTRY[mode];
-    
-    const [history, setHistory] = useState<any[]>([]);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [gameEnded, setGameEnded] = useState(false);
-    const [liveEval, setLiveEval] = useState<EvaluationProgress | null>(null);
-    const [engineClient, setEngineClient] = useState<GameEngineClient | null>(null);
-
-    // Lifespan Guardrail: Manage infrastructure initialization and destruction explicitly
-    useEffect(() => {
-        const client = new GameEngineClient({
-            onMoveReady: (move) => {
-                executeMove(move.from, move.to);
-            },
-            onEvaluationUpdate: (progress) => {
-                setLiveEval(progress);
-            },
-            onError: (err) => console.error("WASM Thread Failure:", err)
-        });
-
-        setEngineClient(client);
-
-        // CLEANUP: Terminate the web worker immediately when this mode unmounts
-        return () => {
-            client.terminate();
-        };
-    }, [mode]);
-
-    const executeMove = useCallback(async (from: any, to: any) => {
-        if (gameEnded) return false;
-        
-        // 1. Invoke pure domain validation logic (e.g., handling config.strictRules)
-        // 2. Append state copy to snapshot array and clear out alternative timelines if tracking from mid-game
-        
-        // 3. Explicit Command Dispatch (Simultaneous frame processing without useEffect monitors)
-        if (config.enableLiveEval && engineClient) {
-            engineClient.requestLiveEvaluation(newBoard, nextPlayer, config);
-        }
-
-        return true;
-    }, [gameEnded, config, engineClient, currentIndex, history]);
-
-    const jumpToHistoryIndex = useCallback((index: number) => {
-        if (index < 0 || index >= history.length) return;
-        setCurrentIndex(index);
-        setLiveEval(null); // Purge stale calculation records instantly
-    }, [history]);
-
-    const resetGame = useCallback(() => {
-        setLiveEval(null);
-        setCurrentIndex(0);
-        setGameEnded(false);
-    }, []);
-
-    return (
-        <GameContext.Provider value={{
-            board: history[currentIndex]?.board || [],
-            currentPlayer: history[currentIndex]?.currentPlayer || PlayerIndex.WHITE,
-            gameEnded,
-            config,
-            historyLength: history.length,
-            currentIndex,
-            liveEval,
-            executeMove,
-            jumpToHistoryIndex,
-            resetGame
-        }}>
-            {children}
-        </GameContext.Provider>
-    );
-};
-
-export const useGame = () => {
-    const context = useContext(GameContext);
-    if (!context) throw new Error("useGame must be consumed within an active GameProvider gate");
-    return context;
-};
-
-```
 
 ---
 
@@ -931,14 +821,6 @@ The `GameModuleRoot.tsx` serves as the entry gate exposed to your upper global s
 
 * **Responsive Snapping Loop:** Maintain the `ResizeObserver` script exactly as outlined in Section 5. Ensure width sizes snap explicitly to clean multiples of 8 (`Math.floor(width / 8) * 8`) before updating state to guarantee pixel-perfect rendering across layers.
 * **Component-Level Unmounts:** When switching modes (e.g., exiting an AnalysisView and entering a strict PlayView), verify that the underlying context completely recycles itself. This fires the `.terminate()` destructor class command, preventing memory leaks from hidden web worker threads.
-
----
-
-## 6.4 Phase 6 Implementation Steps
-
-1. Create `src/features/game-module/context/GameContext.tsx` and integrate the client loop execution logic.
-2. Build the specialized `AnalysisView.tsx` and `PlayView.tsx` structural layouts within the modes directory.
-3. Hook `GameModuleRoot.tsx` directly into the pages router system to execute manual integration tests. Switch configurations to verify that structural modules (like the evaluation bars or timers) assemble and disassemble cleanly based on configuration flags.
 
 ---
 
