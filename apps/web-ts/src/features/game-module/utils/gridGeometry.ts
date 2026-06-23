@@ -2,35 +2,33 @@ import type { Coordinate } from '../domain/types';
 
 export const GridGeometry = {
   /**
-   * Translates grid indexes to absolute pixel coordinates mapping the true center of a square.
-   * Inverts the Y-axis calculation so that row 0 represents the bottom visual row.
+   * Translates matrix indexes to the top-left corner within the 800x800 vector space.
+   * Ideal for positioning on-grid elements or cell layout wrappers.
    */
-  matrixToPixels(row: number, col: number, boardSize: number): { x: number; y: number } {
-    const tileSize = boardSize / 8;
+  matrixToVectorTopLeft(row: number, col: number): { x: number; y: number } {
     return {
-      x: col * tileSize + tileSize / 2,
-      y: (7 - row) * tileSize + tileSize / 2
+      x: col * 100,
+      y: (7 - row) * 100
     };
   },
 
   /**
-   * Translates grid indexes to the exact top-left pixel corner of a cell.
-   * Ideal for positioning HTML piece wrappers or computing bounding boxes.
+   * Translates matrix indexes to the exact center within the 800x800 vector space.
+   * Ideal for cross-grid layouts like drawing tactical lines and assist vectors.
    */
-  matrixToTileTopLeft(row: number, col: number, boardSize: number): { x: number; y: number } {
-    const tileSize = boardSize / 8;
+  matrixToVectorCenter(row: number, col: number): { x: number; y: number } {
     return {
-      x: col * tileSize,
-      y: (7 - row) * tileSize
+      x: col * 100 + 50,
+      y: (7 - row) * 100 + 50
     };
   },
 
   /**
-   * Converts raw canvas bounding pixel hits back into a row/column grid intersection.
-   * Crucial for intercepting where a pointer tap down or drag drop occurs.
+   * Converts raw pointer event offsets back into a row/column grid intersection.
+   * Uses the live DOM bounding width at the moment of interaction.
    */
-  pixelsToMatrix(x: number, y: number, boardSize: number): Coordinate {
-    const tileSize = boardSize / 8;
+  pixelsToMatrix(x: number, y: number, currentBoardSize: number): Coordinate {
+    const tileSize = currentBoardSize / 8;
     const col = Math.floor(x / tileSize);
     const row = 7 - Math.floor(y / tileSize);
     
@@ -41,10 +39,10 @@ export const GridGeometry = {
   },
 
   /**
-   * Translates coordinates to standard chess notation strings.
+   * Translates matrix coordinates to standard algebraic notation.
    */
   matrixToAlgebraic(row: number, col: number): string {
-    const files = "ABCDEFGH";
+    const files = 'ABCDEFGH';
     return `${files[col]}${row}`;
   }
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import BaseSvgLayer from '../base/BaseSvgLayer';
+import BaseSvgLayer from './BaseSvgLayer';
 
 interface BoardBackgroundSvgLayerProps {
   boardSize: number;

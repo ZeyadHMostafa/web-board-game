@@ -1,57 +1,49 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React from 'react';
+import BoardFrame from './features/board/BoardFrame';
 
-interface GameModuleRootProps {
-  initialMode?: 'STRICT' | 'CASUAL' | 'ANALYSIS';
-}
-
-export const GameModuleRoot: React.FC<GameModuleRootProps> = ({
-  initialMode = 'ANALYSIS'
-}) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [boardSize, setBoardSize] = useState<number>(512);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const {width, height} = entry.contentRect;
-        const minDimension = Math.min(width, height, window.innerHeight * 0.7);
-        // Grid rule: Snap size values to clean multiples of 8
-        const snappedSize = Math.max(256, Math.floor(minDimension / 8) * 8);
-        setBoardSize(snappedSize);
-      }
-    });
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
+export const GameModuleRoot: React.FC<{ isLeftMenuOpen: boolean }> = ({ isLeftMenuOpen }) => {
   return (
-    <div className="w-full min-h-screen flex flex-col items-center justify-center bg-app-bg p-6 text-text-main">
-      <header className="mb-4 text-center">
-        <h1 className="text-2xl font-bold tracking-wider">GAME ENGINE CORE</h1>
-        <p className="text-xs text-text-muted mt-1">
-          Mode: {initialMode} | Locked Resolution: {boardSize}px
-        </p>
-      </header>
+    <>
+      {/* Left Menu Side Bar */}
+      <aside className={`
+        [grid-area:left] bg-surface-card border-r border-border-muted flex flex-col h-full overflow-hidden transition-all duration-300
+        ${isLeftMenuOpen ? 'w-full' : 'w-0 border-r-0 pointer-events-none'} 
+        landscape:hidden lg:flex
+      `}>
+        {isLeftMenuOpen && (
+          <div className="p-4 min-w-[250px]">
+            <h2 className="font-bold text-sm text-text-main uppercase">Engine Utilities</h2>
+            <p className="text-xs text-text-muted mt-2">Analysis Mode Active.</p>
+          </div>
+        )}
+      </aside>
 
-      <div
-        ref={containerRef}
-        className="w-full flex-1 max-w-5xl flex items-center justify-center min-h-0"
-      >
-        {/* Structural Gateway Target View Placeholder */}
-        <div
-          className="bg-surface-card border border-border-muted rounded-xl flex items-center justify-center shadow-2xl transition-all duration-200"
-          style={{width: boardSize, height: boardSize}}
-        >
-          <span className="text-sm text-text-muted font-mono">
-            [Module Target Frame Ready]
-          </span>
-        </div>
+      {/* Main Game Frame */}
+      <div className="[grid-area:main] flex items-center justify-center p-4 min-h-0 min-w-0">
+        <main className="w-full max-w-5xl aspect-square max-h-[60vh] landscape:max-h-[85vh] lg:max-h-[calc(100vh-10rem)]">
+          <BoardFrame />
+        </main>
       </div>
-    </div>
+
+      {/* Right Menu / Telemetry Log */}
+      <aside className="[grid-area:right] bg-surface-card border-t landscape:border-t-0 landscape:border-l lg:border-t-0 lg:border-l border-border-muted flex flex-col min-h-0">
+        <div className="p-4 border-b border-border-muted bg-hud-bg">
+          <h2 className="font-bold text-sm text-text-main uppercase">Telemetry Log</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-xs text-text-muted h-[200px] landscape:h-auto">
+          {/* Logs map down here cleanly */}
+        </div>
+      </aside>
+
+      {/* Unified Status Footer */}
+      <footer className="[grid-area:footer] bg-surface-card border-t border-border-muted px-4 py-2 flex items-center justify-between text-xs font-mono text-text-muted">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-indicator-legal animate-pulse" />
+          SYSTEM LOGGED IN
+        </div>
+        <span>PING: 24ms</span>
+      </footer>
+    </>
   );
 };
 

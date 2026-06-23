@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+@layer utilities {
+  .material-icons {
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;  /* Default scale baseline */
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+
+    /* Ligature support for modern text string replacements */
+    font-feature-settings: 'liga';
+
+    /* Sub-pixel rendering optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
 @theme {
   /* Application Shell Framework */
   --color-app-bg: #020617;           /* slate-950 */
@@ -30,6 +54,11 @@
   --color-piece-white-ring: #334155;   /* slate-700 */
   --color-piece-black-fill: #1e293b;   /* slate-850 */
   --color-piece-black-ring: #cbd5e1;   /* slate-300 */
+
+  /* Tactical Alpha Highlights */
+  --color-highlight-from: rgba(37, 99, 235, 0.18); /* Primary Accent from-state */
+  --color-highlight-to: rgba(96, 165, 250, 0.28);   /* Accent Glow target-state */
+  --color-selection-bg: rgba(96, 165, 250, 0.08);   /* Selection core fill */
 }
 
 @layer base {
@@ -42,3 +71,4 @@
     antialiased: true;
   }
 }
+
