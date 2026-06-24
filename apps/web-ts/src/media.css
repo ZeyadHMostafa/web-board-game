@@ -20,7 +20,7 @@
 @media (max-width: 767px) and (orientation: portrait) {
   .holy-grail-grid {
     grid-template-columns: 1fr;
-		grid-template-rows: auto auto minmax(0, auto) auto;
+		grid-template-rows: auto auto auto 1fr;
     grid-template-areas: 'nav' 'main' 'foot' 'right';
   }
 
