@@ -1,0 +1,23 @@
+@theme {
+  /* Board Matrix Core Fields */
+  --color-tile-light: #334155;       /* slate-700 */
+  --color-tile-dark: #1e293b;        /* slate-850 */
+  
+  /* Tactical Action Overlays */
+  --color-accent-primary: #2563eb;   /* blue-600 */
+  --color-accent-glow: rgba(96, 165, 250, 0.85); /* blue-400 alpha */
+  --color-indicator-legal: #10b981;  /* emerald-500 */
+  --color-indicator-capture: #ef4444;/* red-500 */
+
+  /* Game Piece Domain Tokens */
+  --color-piece-white-fill: #e2e8f0;   /* slate-200 */
+  --color-piece-white-ring: #334155;   /* slate-700 */
+  --color-piece-black-fill: #1e293b;   /* slate-850 */
+  --color-piece-black-ring: #cbd5e1;   /* slate-300 */
+
+  /* Tactical Alpha Highlights */
+  --color-highlight-from: rgba(37, 99, 235, 0.18); /* Primary Accent from-state */
+  --color-highlight-to: rgba(96, 165, 250, 0.28);   /* Accent Glow target-state */
+  --color-selection-bg: rgba(96, 165, 250, 0.08);   /* Selection core fill */
+
+}

@@ -1,0 +1,7 @@
+@theme {
+  /* Clear out default colors */
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+}
