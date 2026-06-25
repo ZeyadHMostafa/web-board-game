@@ -1,50 +1,63 @@
-import React from 'react';
-import BoardFrame from './features/board/BoardFrame';
+import React, { useState } from 'react';
+import GameStatusBar from './features/hud/GameStatusBar';
+import GameSideBar from './features/hud/GameSideBar';
+import GameProvider from './context/GameProvider';
+import MainBoard from './features/board/GameBoard';
 
-export const GameModuleRoot: React.FC<{ isLeftMenuOpen: boolean }> = ({ isLeftMenuOpen }) => {
-  return (
-    <>
-      {/* Left Menu Side Bar */}
-      <aside className={`
-        [grid-area:left] bg-surface-card border-r border-border-muted flex flex-col h-full overflow-hidden transition-all duration-300
-        ${isLeftMenuOpen ? 'w-full' : 'w-0 border-r-0 pointer-events-none'} 
-        landscape:hidden lg:flex
-      `}>
-        {isLeftMenuOpen && (
-          <div className="p-4 min-w-[250px]">
-            <h2 className="font-bold text-sm text-text-main uppercase">Engine Utilities</h2>
-            <p className="text-xs text-text-muted mt-2">Analysis Mode Active.</p>
-          </div>
-        )}
-      </aside>
+export const GameModuleRoot: React.FC = () => {
+	const [isDrawerExpanded, setIsDrawerExpanded] = useState<boolean>(false);
 
-      {/* Main Game Frame */}
-      <div className="[grid-area:main] flex items-center justify-center p-4 min-h-0 min-w-0">
-        <main className="w-full max-w-5xl aspect-square max-h-[60vh] landscape:max-h-[85vh] lg:max-h-[calc(100vh-10rem)]">
-          <BoardFrame />
-        </main>
-      </div>
+	const toggleDrawer = () => {
+		setIsDrawerExpanded((prev) => !prev);
+	};
 
-      {/* Right Menu / Telemetry Log */}
-      <aside className="[grid-area:right] bg-surface-card border-t landscape:border-t-0 landscape:border-l lg:border-t-0 lg:border-l border-border-muted flex flex-col min-h-0">
-        <div className="p-4 border-b border-border-muted bg-hud-bg">
-          <h2 className="font-bold text-sm text-text-main uppercase">Telemetry Log</h2>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-xs text-text-muted h-[200px] landscape:h-auto">
-          {/* Logs map down here cleanly */}
-        </div>
-      </aside>
+	return (
+		<div className="w-full h-full flex flex-col landscape:flex-row min-h-0 min-w-0 overflow-hidden relative">
+			<GameProvider mode="ANALYSIS">
+				{/* Simulation Viewport Canvas Workspace */}
+				<div className="flex-1 min-w-0 min-h-0 bg-app-bg flex items-center justify-center p-4">
+					<MainBoard />
+				</div>
 
-      {/* Unified Status Footer */}
-      <footer className="[grid-area:footer] bg-surface-card border-t border-border-muted px-4 py-2 flex items-center justify-between text-xs font-mono text-text-muted">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-indicator-legal animate-pulse" />
-          SYSTEM LOGGED IN
-        </div>
-        <span>PING: 24ms</span>
-      </footer>
-    </>
-  );
+				{/* Unified Secondary Control Surface System */}
+				<div 
+					className={`
+						shrink-0 flex flex-col
+						w-full landscape:w-[320px] landscape:h-full landscape:border-l landscape:border-border-muted
+						portrait:relative portrait:w-full portrait:z-20
+					`}
+				>
+					{/* Persistent High-Level Operational State Indicator */}
+					<div className="w-full portrait:order-first">
+						<GameStatusBar onDrawerToggle={toggleDrawer} isDrawerExpanded={isDrawerExpanded} />
+					</div>
+
+					{/* Deep-Dive Parameter Sub-Systems (Inline Panel on Desktop / Vertical Drawer on Mobile) */}
+					<div 
+						className={`
+							flex-1 min-h-0 w-full bg-surface-card
+							transition-transform duration-300 ease-in-out
+							landscape:transform-none landscape:static
+							portrait:fixed portrait:top-full portrait:left-0 portrait:right-0 portrait:h-[60vh] portrait:border-t portrait:border-border-muted
+							${isDrawerExpanded ? 'portrait:-translate-y-full' : 'portrait:translate-y-0'}
+						`}
+					>
+						{/* Visual Drag Handle Anchor Indicator for Portrait Interaction */}
+						<div 
+							onClick={toggleDrawer}
+							className="w-full h-6 flex items-center justify-center cursor-pointer bg-hud-bg border-b border-border-muted landscape:hidden"
+						>
+							<div className="w-12 h-1 rounded-full bg-text-muted/40" />
+						</div>
+
+						<div className="w-full h-full portrait:h-[calc(60vh-24px)]">
+							<GameSideBar />
+						</div>
+					</div>
+				</div>
+			</GameProvider>
+		</div>
+	);
 };
 
 export default GameModuleRoot;
