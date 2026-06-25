@@ -11,7 +11,7 @@ export const AssistLayer: React.FC = () => {
   }
 
   return (
-    <BaseSvgLayer zIndex={40}>
+    <BaseSvgLayer zIndex={4}>
       {liveEval.candidates.slice(0,config.maxAssistMovesShown).map((candidate, index) => (
         <SvgArrow
           key={`assist-arrow-${candidate.from.row}-${candidate.from.col}-${candidate.to.row}-${candidate.to.col}`}

@@ -8,7 +8,7 @@ export const SelectionLayer: React.FC = () => {
   const { board, selectedCoords, validMoves } = useGame();
 
   return (
-    <BaseSvgLayer zIndex={20}>
+    <BaseSvgLayer zIndex={2}>
       {selectedCoords && (
         <SvgGridCell row={selectedCoords.row} col={selectedCoords.col}>
           <rect

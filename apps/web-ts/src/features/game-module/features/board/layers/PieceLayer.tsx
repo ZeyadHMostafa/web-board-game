@@ -13,7 +13,7 @@ export const PieceLayer: React.FC<PieceLayerProps> = ({ dragSource }) => {
   const { board } = useGame();
 
   return (
-    <BaseSvgLayer zIndex={30}>
+    <BaseSvgLayer zIndex={3}>
       {board.map((rowArray, rowIndex) =>
         rowArray.map((cell, colIndex) => {
           if (!cell) return null;

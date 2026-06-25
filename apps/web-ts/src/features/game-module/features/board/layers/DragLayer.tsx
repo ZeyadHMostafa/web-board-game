@@ -12,7 +12,7 @@ export const DragLayer: React.FC<DragLayerProps> = ({ type, mousePos }) => {
 
   return (
     <div
-      className="fixed top-0 left-0 pointer-events-none z-50 opacity-70 mix-blend-screen w-[64px] h-[64px]"
+      className="fixed top-0 left-0 pointer-events-none z-5 opacity-70 mix-blend-screen w-[64px] h-[64px]"
       style={{
         transform: `translate3d(${mousePos.x - 32}px, ${mousePos.y - 32}px, 0px)`,
       }}

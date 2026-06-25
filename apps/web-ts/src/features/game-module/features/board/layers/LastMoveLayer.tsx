@@ -11,7 +11,7 @@ export const LastMoveLayer: React.FC = () => {
   if (!lastMove) return null;
 
   return (
-    <BaseSvgLayer zIndex={10}>
+    <BaseSvgLayer zIndex={1}>
       <SvgGridCell row={lastMove.from.row} col={lastMove.from.col}>
         <rect width={100} height={100} fill="var(--color-highlight-from)" />
       </SvgGridCell>
