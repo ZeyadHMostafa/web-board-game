@@ -46,3 +46,13 @@ export interface GameSnapshot {
   currentPlayer: PlayerIndex;
   lastMove: Move | null;
 }
+
+// todo: move to higher place
+export interface PlayerData {
+  id: string;
+  name: string;
+  rating: number;
+  ratingChange: number;
+  avatarUrl?: string;
+  isUser: boolean;
+}
