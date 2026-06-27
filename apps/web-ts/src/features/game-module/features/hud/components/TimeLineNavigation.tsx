@@ -1,8 +1,11 @@
 import React from 'react';
-import { useGame } from '../../../context/GameContext';
+import {useGameStore} from '../../../store/useGameStore';
 
 export const TimelineNavigation: React.FC = () => {
-  const { currentIndex, history, jumpToHistoryIndex, gameEnded } = useGame();
+  const history = useGameStore((state) => state.history);
+  const currentIndex = useGameStore((state) => state.currentIndex);
+  const gameEnded = useGameStore((state) => state.gameEnded);
+  const jumpToHistoryIndex = useGameStore((state) => state.jumpToHistoryIndex);
 
   const isAtStart = currentIndex === 0;
   const isAtLive = currentIndex === history.length - 1;

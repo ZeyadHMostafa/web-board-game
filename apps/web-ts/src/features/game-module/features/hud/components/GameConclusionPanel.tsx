@@ -1,8 +1,9 @@
 import React from 'react';
-import { useGame } from '../../../context/GameContext';
+import {useGameStore} from '../../../store/useGameStore';
 
 export const GameConclusionPanel: React.FC = () => {
-  const { gameEnded, resetGame } = useGame();
+  const gameEnded = useGameStore((state) => state.gameEnded);
+  const resetGame = useGameStore((state) => state.resetTimeline);
 
   if (!gameEnded) return null;
 

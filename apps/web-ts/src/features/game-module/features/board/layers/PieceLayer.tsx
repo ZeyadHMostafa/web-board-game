@@ -1,16 +1,18 @@
 import React from 'react';
-import { useGame } from '../../../context/GameContext';
 import BaseSvgLayer from './BaseSvgLayer';
 import { SvgGridCell } from '../library/SvgGridCell';
 import SvgPiece from '../library/svg/svgPiece';
 import type {Coordinate} from '../../../domain/types';
+import {useGameStore} from '../../../store/useGameStore';
 
 interface PieceLayerProps {
   dragSource: Coordinate | null;
 }
 
 export const PieceLayer: React.FC<PieceLayerProps> = ({ dragSource }) => {
-  const { board } = useGame();
+  const history = useGameStore((state) => state.history);
+  const currentIndex = useGameStore((state) => state.currentIndex);
+  const board = history[currentIndex]?.board;
 
   return (
     <BaseSvgLayer zIndex={3}>

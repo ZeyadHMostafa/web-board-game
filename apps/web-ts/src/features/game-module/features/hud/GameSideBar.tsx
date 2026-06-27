@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useGame } from '../../context/GameContext';
 import EngineConfigCard from './components/EngineConfigCard';
 import DisplayLayersCard from './components/DisplayLayersCard';
 import MoveScorer from './components/MoveScorer';
+import {useGameStore} from '../../store/useGameStore';
 
 type ActiveTab = 'analysis' | 'configuration';
 
@@ -14,7 +14,8 @@ interface TabItem {
 
 export const GameSideBar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('analysis');
-  const { currentPlayer, gameEnded } = useGame();
+  const currentPlayer = useGameStore((state) => state.currentPlayer);
+  const gameEnded = useGameStore((state) => state.gameEnded);
 
   {/* Icon-Only Navigation Control Schema */}
   const tabSchema: TabItem[] = [
@@ -65,7 +66,7 @@ export const GameSideBar: React.FC = () => {
         )}
       </div>
 
-      {/* Minimalist Icon-Based Tab Bar (Fixed Bottom) */}
+      {/* Minimalist Icon-Based Tab Bar */}
       <div className="flex bg-hud-bg border-t border-border-muted p-1 shrink-0 h-12">
         {tabSchema.map((tab) => {
           const isSelected = activeTab === tab.id;

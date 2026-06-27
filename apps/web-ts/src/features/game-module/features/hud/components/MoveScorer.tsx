@@ -1,9 +1,9 @@
 import React from 'react';
-import {useGame} from '../../../context/GameContext';
+import {useGameStore} from '../../../store/useGameStore';
 
 export const MoveScorer: React.FC = () => {
-  const { liveEval } = useGame();
-
+  const liveEval = useGameStore((state) => state.liveEval);
+  const ALPHA = ['A','B','C','D','E','F','G','H'];
   if (!liveEval) {
     return (
       <div className="p-4 rounded border border-border-muted bg-hud-card text-center text-xs text-text-muted italic">
@@ -35,11 +35,11 @@ export const MoveScorer: React.FC = () => {
                 <span className="text-text-muted opacity-50 w-3 text-[10px]">{idx + 1}.</span>
                 <span className="text-text-main font-semibold bg-surface-card px-1 rounded border border-border-muted">
                   {/* Safely translating rows/cols labels if coordinates aren't algebraic yet */}
-                  {`[${candidate.from.row},${candidate.from.col}]`}
+                  {`[${candidate.from.row},${ALPHA[candidate.from.col]}]`}
                 </span>
                 <span className="text-text-muted text-[10px]">→</span>
                 <span className="text-text-main font-semibold bg-surface-card px-1 rounded border border-border-muted">
-                  {`[${candidate.to.row},${candidate.to.col}]`}
+                  {`[${candidate.to.row},${ALPHA[candidate.to.col]}]`}
                 </span>
                 {candidate.isCapture && (
                   <span className="material-icons text-indicator-capture text-xs ml-1">gavel</span>

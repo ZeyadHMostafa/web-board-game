@@ -1,14 +1,23 @@
 import React from 'react';
-import {useGame} from '../../../context/GameContext';
+import { useGameStore } from '../../../store/useGameStore';
 
 export const EvalBar: React.FC = () => {
-  const { liveEval, gameEnded } = useGame();
+  const liveEval = useGameStore((state) => state.liveEval);
+  const gameEnded = useGameStore((state) => state.gameEnded);
+  const history = useGameStore((state) => state.history);
+  const currentIndex = useGameStore((state) => state.currentIndex);
+
+  const currentSnapshot = history[currentIndex] || { currentPlayer: 0 };
+  const currentPlayer = currentSnapshot.currentPlayer;
+
 
   if (gameEnded || !liveEval || liveEval.candidates.length === 0) {
     return <div className="h-1.5 w-full bg-border-muted transition-all duration-300" />;
   }
   
-  const whitePercentage = Math.tanh(liveEval.candidates[0].scoreValue/100)*50+50
+  const topMoveScore = liveEval.candidates[0].scoreValue
+
+  const whitePercentage = Math.tanh(topMoveScore*[1,-1][currentPlayer]/100)*50+50
 
   return (
     <div 

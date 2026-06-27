@@ -1,7 +1,8 @@
-import {useGame} from '../../../context/GameContext';
+import {useGameStore} from '../../../store/useGameStore';
 
 export const DisplayLayersCard: React.FC = () => {
-  const { showAssist, toggleAssist } = useGame();
+  const showAssist = useGameStore((state) => state.showAssist);
+  const toggleAssist = useGameStore((state) => state.toggleAssist);
 
   return (
     <div className="flex flex-col gap-2">

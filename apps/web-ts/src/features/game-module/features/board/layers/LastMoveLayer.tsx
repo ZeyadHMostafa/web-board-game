@@ -1,10 +1,11 @@
 import React from 'react';
-import { useGame } from '../../../context/GameContext';
 import BaseSvgLayer from './BaseSvgLayer';
 import { SvgGridCell } from '../library/SvgGridCell';
+import {useGameStore} from '../../../store/useGameStore';
 
 export const LastMoveLayer: React.FC = () => {
-  const { history, currentIndex} = useGame();
+  const history = useGameStore((state) => state.history);
+  const currentIndex = useGameStore((state) => state.currentIndex);
   if (history.length == 1) return;
   const lastMove = history[currentIndex].lastMove;
 

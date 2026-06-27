@@ -29,7 +29,7 @@ export const BoardBackgroundSvgLayer: React.FC<BoardBackgroundSvgLayerProps> = (
   }
 
   return (
-    <BaseSvgLayer boardSize={boardSize} zIndex={0}>
+    <BaseSvgLayer zIndex={0}>
       {/* 1. Large base backing sheet representing all dark squares */}
       <rect 
         width={boardSize} 

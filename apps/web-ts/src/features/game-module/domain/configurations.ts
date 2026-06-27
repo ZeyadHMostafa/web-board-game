@@ -78,7 +78,7 @@ export const MODE_REGISTRY: Record<GameModeType, FeatureConfiguration> = {
     enableLiveEval: true,
     strictRules: false,
     maxEvaluationDepth: 4,
-    maxAssistMovesShown: 5,
+    maxAssistMovesShown: 0,
     autoPlayers: [false, false],
     aiEngineConfig: {},
   },

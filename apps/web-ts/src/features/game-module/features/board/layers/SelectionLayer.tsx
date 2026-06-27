@@ -1,11 +1,24 @@
 import React from 'react';
-import { useGame } from '../../../context/GameContext';
 import BaseSvgLayer from './BaseSvgLayer';
 import { SvgGridCell } from '../library/SvgGridCell';
 import { GridGeometry } from '../../../utils/gridGeometry';
+import {useGameStore} from '../../../store/useGameStore';
 
 export const SelectionLayer: React.FC = () => {
-  const { board, selectedCoords, validMoves } = useGame();
+  const history = useGameStore((state) => state.history);
+  const currentIndex = useGameStore((state) => state.currentIndex);
+  const board = history[currentIndex]?.board;
+  const selectedCoords = useGameStore((state) => state.selectedCoords);
+  const allLegalMoves = useGameStore((state) => state.allLegalMoves);
+
+  const validMoves = React.useMemo(() => {
+    if (!selectedCoords) return [];
+    return allLegalMoves.filter(
+      (move) =>
+        move.from.row === selectedCoords.row &&
+        move.from.col === selectedCoords.col
+    ).map((move)=>move.to);
+  }, [selectedCoords, allLegalMoves]);
 
   return (
     <BaseSvgLayer zIndex={2}>

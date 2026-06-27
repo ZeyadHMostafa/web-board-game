@@ -1,10 +1,10 @@
 import React from 'react';
-import { useGame } from '../../context/GameContext';
 import EvalBar from './components/EvalBar';
 import PlayerInfoBlock from './components/PlayerInfoBlock';
 import TimelineNavigation from './components/TimeLineNavigation';
 import QuickActionsMenu from './components/QuickActionsMenu';
 import type {PlayerData} from '../../domain/types';
+import {useGameStore} from '../../store/useGameStore';
 
 interface GameStatusBarProps {
   onDrawerToggle?: () => void;
@@ -15,16 +15,9 @@ export const GameStatusBar: React.FC<GameStatusBarProps> = ({
   onDrawerToggle,
   isDrawerExpanded
 }) => {
-  // TODO: add these to game context
-  const { 
-    // whitePlayer, 
-    // blackPlayer, 
-    // whiteTimeLeft, 
-    // blackTimeLeft, 
-    currentPlayer,
-    gameEnded,
-    // executeGameAction
-  } = useGame();
+  const gameEnded = useGameStore((state) => state.gameEnded);
+  const currentIndex = useGameStore((state) => state.currentIndex);
+  const currentPlayer = useGameStore((state) => state.history[currentIndex]?.currentPlayer ?? 0);
 
   const MOCK_WHITE_PLAYER: PlayerData = {
     id: 'usr-1',
@@ -32,7 +25,7 @@ export const GameStatusBar: React.FC<GameStatusBarProps> = ({
     rating: 2450,
     ratingChange: 12,
     isUser: true,
-    avatarUrl: undefined // Left undefined to test the Material Icon fallback glyph
+    avatarUrl: undefined
   };
   const whitePlayer = MOCK_WHITE_PLAYER
 

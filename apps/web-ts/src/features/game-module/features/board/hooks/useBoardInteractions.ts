@@ -1,14 +1,22 @@
 import React, { useState, useRef } from 'react';
-import { useGame } from '../../../context/GameContext';
 import { GridGeometry } from '../../../utils/gridGeometry';
 import type { Coordinate, PlayerColor } from '../../../domain/types';
+import {useGameStore} from '../../../store/useGameStore';
 
 interface UseBoardInteractionsProps {
   boardRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const useBoardInteractions = ({ boardRef }: UseBoardInteractionsProps) => {
-  const { board, selectedCoords, executeMove, selectPiece, currentPlayer } = useGame();
+  const history = useGameStore((state) => state.history);
+  const currentIndex = useGameStore((state) => state.currentIndex);
+  const selectedCoords = useGameStore((state) => state.selectedCoords);
+  const executeMove = useGameStore((state) => state.executeMove);
+  const selectPiece = useGameStore((state) => state.selectPiece);
+
+  const currentSnapshot = history[currentIndex] || { board: [], currentPlayer: 0 };
+  const board = currentSnapshot.board;
+  const currentPlayer = currentSnapshot.currentPlayer;
   
   const [draggedPiece, setDraggedPiece] = useState<PlayerColor | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });

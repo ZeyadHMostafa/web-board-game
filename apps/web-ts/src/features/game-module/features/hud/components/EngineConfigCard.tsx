@@ -1,10 +1,13 @@
 import React from 'react';
-import { useGame } from '../../../context/GameContext';
 import { PlayerIndex } from '../../../domain/types';
 import { AI_LEVELS, type AiLevel } from '../../../domain/configurations';
+import {useGameStore} from '../../../store/useGameStore';
 
 export const EngineConfigCard: React.FC = () => {
-  const { whiteEngine, blackEngine } = useGame();
+  const whiteEngine = useGameStore((state) => state.whiteEngine);
+  const blackEngine = useGameStore((state) => state.blackEngine);
+  const toggleEngineAuto = useGameStore((state) => state.toggleEngineAuto);
+  const setEngineAiLevel = useGameStore((state) => state.setEngineAiLevel);
 
   const engines = [
     {
@@ -37,7 +40,7 @@ export const EngineConfigCard: React.FC = () => {
           {/* Header Row: Toggle & Status Indicator */}
           <div className="flex items-center justify-between">
             <button
-              onClick={engine.state.toggleAuto}
+              onClick={()=>toggleEngineAuto(engine.id)}
               className={`flex items-center gap-2 text-xs font-bold tracking-wider uppercase transition-colors text-left group cursor-pointer ${
                 engine.state.isAuto ? 'text-accent-glow' : 'text-text-muted hover:text-text-main'
               }`}
@@ -66,7 +69,7 @@ export const EngineConfigCard: React.FC = () => {
               return (
                 <button
                   key={lvl.value}
-                  onClick={() => engine.state.setAiLevel(lvl.value)}
+                  onClick={() => setEngineAiLevel(engine.id,lvl.value)}
                   className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-all cursor-pointer group ${
                     isSelected
                       ? 'bg-accent-primary text-text-main shadow-md'
