@@ -70,7 +70,6 @@ export const createEvalSlice: StateCreator<
       set({ liveEval: null });
       return;
     }
-    console.log("live eval triggered")
     const currentSnapshot = history[currentIndex];
     engineClient.requestLiveEvaluation(
       currentSnapshot.board,
