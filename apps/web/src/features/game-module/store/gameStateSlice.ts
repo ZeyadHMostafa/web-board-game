@@ -65,6 +65,7 @@ export const createGameStateSlice: StateCreator<
     });
 
     set({ engineClient: client });
+    get().triggerLiveEvaluation();
     get().fetchLegalMoves();
   },
 
