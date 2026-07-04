@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@import "./reset.css";
+@import "./material-icons.css";
+@import "./brand-theme.css";
+@import "./board-theme.css";
+
+@layer base {
+  body {
+    background-color: var(--color-app-bg);
+    color: var(--color-text-main);
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    antialiased: true;
+  }
+}
+
+@theme {
+  /* Standard tailwind key re-mappings*/
+  --breakpoint-md: 950px;
+  --breakpoint-lg: 1280px;
+}
+@custom-variant short-height (@media (max-height: 500px));

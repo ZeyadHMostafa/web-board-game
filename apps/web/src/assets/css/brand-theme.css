@@ -1,0 +1,15 @@
+@theme {
+  /* Application Shell Framework */
+  --color-app-bg: #020617;           /* slate-950 */
+  --color-surface-card: #0f172a;     /* slate-900 */
+  --color-border-muted: #1e293b;     /* slate-800 */
+  
+  /* Feature UI & HUD Tokens */
+  --color-hud-bg: rgba(15, 23, 42, 0.6);      /* slate-900/60 with blur */
+  --color-hud-border: rgba(30, 41, 59, 0.4);  /* slate-800/40 */
+  --color-hud-card: rgba(15, 23, 42, 0.4);    /* slate-950/40 */
+
+  /* Typography Structure classes */
+  --color-text-main: #f8fafc;        /* slate-50 */
+  --color-text-muted: #94a3b8;       /* slate-400 */
+}
